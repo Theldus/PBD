@@ -50,6 +50,10 @@
 
 	extern struct array *bp_createlist(struct array *lines, pid_t pid);
 	
+	extern int bp_createbreakpoint(uint64_t addr, struct array *bp, pid_t child);
+
+	extern int bp_insertbreakpoint(struct breakpoint *bp, pid_t child);
+
 	extern int bp_insertbreakpoints(struct array *bp, pid_t child);
 	
 	extern struct breakpoint *bp_findbreakpoint(uint64_t addr,

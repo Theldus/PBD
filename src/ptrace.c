@@ -130,6 +130,22 @@ uint64_t pt_readregister_bp(pid_t child)
 }
 
 /**
+ * @brief Considering the child process is inside
+ * the function prologue, retrieves the returning
+ * address.
+ *
+ * @param child Child process.
+ *
+ * @return Returns the 'return' address.
+ */
+uint64_t pt_readreturn_address(pid_t child)
+{
+	uint64_t sp;
+	sp = ptrace(PTRACE_PEEKUSER, child, 8 * RSP, NULL);
+	return (ptrace(PTRACE_PEEKDATA, child, sp, NULL));
+}
+
+/**
  * @brief Reads a long value (usually 64-bit in x86_64) from
  * a given processs @p child and address @p addr.
  *

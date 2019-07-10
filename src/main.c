@@ -48,6 +48,9 @@ struct context
 
 	/* Breakpoints. */
 	struct array *breakpoints;
+
+	/* Return address. */
+	uint64_t return_addr;
 } context;
 
 /**
@@ -121,9 +124,7 @@ int setup(const char *file, const char *function)
 	dw_init(file, &context.dw);
 
 	/* Searches for the target function */
-	if (!get_address_by_function(&context.dw, function))
-		printf("low_pc: %" PRIx64 " / high_pc: %" PRIx64 "\n",
-			context.dw.dw_func.low_pc, context.dw.dw_func.high_pc);
+	get_address_by_function(&context.dw, function);
 
 	/* Parses all variables and lines. */
 	context.vars = get_all_variables(&context.dw);
@@ -199,6 +200,8 @@ void do_analysis(const char *file, const char *function)
 	init_vars = 0;
 	prev_bp = NULL;
 
+	printf("Debugging function %s:\n", function);
+
 	/* Main loop. */
 	while (pt_waitchild() != PT_CHILD_EXIT)
 	{
@@ -224,11 +227,32 @@ void do_analysis(const char *file, const char *function)
 			if (context.depth++ > 0)
 				quit(-1, "do_analysis: recursive analysis not supported yet!\n");
 
+			/*
+			 * It is important to set a breakpoint on the next instruction
+			 * right after returning from the function, so it is easier
+			 * to know when to enter or exit the function. Especially useful
+			 * for recursive analysis.
+			 */
+			bp_createbreakpoint(context.return_addr = pt_readreturn_address(child),
+				context.breakpoints, child);
+
 			/* Executes that breakpoint. */
 			bp_skipbreakpoint(bp, child);
 
 			prev_bp = bp;
 			init_vars = 1;
+			pt_continue(child);
+			continue;
+		}
+
+		/*
+		 * Returning from a previous call.
+		 */
+		if (pc == context.return_addr)
+		{
+			/* Decrements the context and continues. */
+			context.depth--;
+			bp_skipbreakpoint(bp, child);
 			pt_continue(child);
 			continue;
 		}
@@ -244,12 +268,12 @@ void do_analysis(const char *file, const char *function)
 		 */
 		if (init_vars)
 		{
+			printf("\n[depth: %d] Entering function...\n", context.depth);
 			init_vars = 0;
 			var_initialize(context.vars, child);
 		}
 
 		/* Do something. */
-		//printf("debugging child, rip: %" PRIx64 ", l: %d\n", pc, prev_bp->line_no);
 		if (prev_bp != NULL)
 			var_check_changes(prev_bp, context.vars, child);
 

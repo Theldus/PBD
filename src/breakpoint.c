@@ -56,13 +56,41 @@ struct array *bp_createlist(struct array *lines, pid_t pid)
 		bp->original_byte = pt_readmemory_long(pid, bp->addr) & 0xFF;
 		bp->line_no = l->line_no;
 
-		//printf("read: %x / addr: %x\n", bp->original_byte, bp->addr);
-
 		/* Add to our array. */
 		array_add(&breakpoints, bp);
 	}
 
 	return (breakpoints);
+}
+
+/**
+ * Create and adds a breakpoint given the address, the breakpoint list
+ * and the child process into the breakpoint list.
+ * @param addr Target breakpoint address.
+ * @param bp Breakpoint list.
+ * @param child Child process.
+ */
+int bp_createbreakpoint(uint64_t addr, struct array *bp, pid_t child)
+{
+	struct breakpoint *b; /* Breakpoint. */
+
+	/* Check if already exists. */
+	if (bp_findbreakpoint(addr, bp) != NULL)
+		return (-1);
+
+	/* Allocate our new breakpoint. */
+	b = malloc(sizeof(struct breakpoint));
+	b->addr = addr;
+	b->original_byte = pt_readmemory_long(child, b->addr) & 0xFF;
+	b->line_no = 0;
+
+	/* Add to our list. */
+	array_add(&bp, b);
+
+	/* Insert breakpoint. */
+	bp_insertbreakpoint(b, child);
+
+	return (0);
 }
 
 /**
