@@ -29,13 +29,19 @@ LDFLAGS  = -ldwarf
 C_SRC = $(wildcard *.c)
 OBJ = $(C_SRC:.c=.o)
 
+.PHONY: tests
+
 %.o: %.c
 	$(CC) $< $(CFLAGS) -c -o $@
 
-all: pbd
+all: pbd tests
 
 pbd: $(OBJ)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
+tests:
+	$(MAKE) -C tests/
+
 clean:
 	@rm -f $(OBJ) pbd
+	@$(MAKE) clean -C tests/
