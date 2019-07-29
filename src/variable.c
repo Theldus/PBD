@@ -27,18 +27,38 @@
 #include "dwarf_helper.h"
 #include "ptrace.h"
 
+/*
+ * Buffer
+ *
+ * This buffer holds the value from before and
+ * after the value is changed for a single
+ * TBASE_TYPE.
+ */
 #define BS 64
-
 static char before[BS];
 static char after[BS];
 
 /**
+ * @brief For a given value, buffer, encoding and size, prepares a
+ * formatted string with its content. It's important to note, that
+ * this function only formats TBASE_TYPEs.
  *
+ * @param buffer Destination buffer, that will holds the formatted
+ * string.
+ *
+ * @param v Variable value.
+ * @param encoding Variable encoding (signed, unsigned...).
+ * @param byte_size Variable size, in bytes.
+ *
+ * @return If success, returns the buffer containing the formatted
+ * string, otherwise, returns NULL.
  */
 char *var_format_value(char *buffer, union var_value *v, int encoding, size_t byte_size)
 {
+	/* Check encoding. */
 	switch (encoding)
 	{
+		/* Signed values. */
 		case DW_ATE_signed:
 		case DW_ATE_signed_char:
 			switch(byte_size)
@@ -58,6 +78,7 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 			}
 			break;
 
+		/* Unsigned values. */
 		case DW_ATE_unsigned:
 		case DW_ATE_unsigned_char:
 			switch(byte_size)
@@ -77,6 +98,7 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 			}
 			break;
 
+		/* Floating point values, that includes float and double. */
 		case DW_ATE_float:
 			snprintf(buffer, BS, "%f", (byte_size == sizeof(double)) ?
 				v->d_value : v->f_value);
@@ -90,7 +112,13 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 }
 
 /**
+ * @brief Reads the current variable value for a given variable.
  *
+ * @param value Value union.
+ * @param v Variable to be read.
+ * @param child Child process.
+ *
+ * @return Returns 0 if success and a negative number otherwise.
  */
 int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 {
@@ -142,10 +170,21 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 }
 
 /**
+ * @brief Initializes all the variables for the current
+ * context by reading its initial values in the stack.
  *
+ * @param vars Variables list, for current context.
+ * @param child Child process.
+ *
+ * @TODO: Implement the initialization for other types,
+ * other than TBASE_TYPE.
  */
 void var_initialize(struct array *vars, pid_t child)
 {
+	/*
+	 * For each variable, check its type and read it
+	 * from the stack.
+	 */
 	for (int i = 0; i < (int) array_size(&vars); i++)
 	{
 		struct dw_variable *v;
@@ -160,19 +199,31 @@ void var_initialize(struct array *vars, pid_t child)
 }
 
 /**
+ * @brief Checks if there is a change for all variables
+ * in the current context, if so, updates its value and
+ * exihibits the changed value.
  *
+ * @param b Current breakpoint.
+ * @param vars Variables list, for current context.
+ * @param child Child process.
+ *
+ * @TODO: Check variable change for other types, other than
+ * TBASE_TYPE.
  */
 void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child)
 {
 	union var_value value;
 
+	/* For each variable. */
 	for (int i = 0; i < (int) array_size(&vars); i++)
 	{
 		struct dw_variable *v;
 		v = array_get(&vars, i, NULL);
 
+		/* If base type. */
 		if (v->type.var_type == TBASE_TYPE)
 		{
+			/* Read and compares its value. */
 			var_read(&value, v, child);
 
 			if (memcmp(&value.u64_value, &v->value.u64_value, v->byte_size))
