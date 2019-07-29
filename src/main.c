@@ -164,6 +164,16 @@ void finish(void)
 		free(l);
 	}
 	array_finish(&context.lines);
+
+	/* Deallocate breakpoints. */
+	size = (int) array_size(&context.breakpoints);
+	for (int i = 0; i < size; i++)
+	{
+		struct breakpoint *p;
+		p = array_remove(&context.breakpoints, 0, NULL);
+		free(p);
+	}
+	array_finish(&context.breakpoints);
 }
 
 /**

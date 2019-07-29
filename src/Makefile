@@ -23,8 +23,8 @@
 CC=gcc
 INCLUDE  = $(CURDIR)/include
 CFLAGS   = -Wall -Wextra
-CFLAGS  += -I $(INCLUDE) -std=c99
-LDFLAGS  = -ldwarf
+CFLAGS  += -I $(INCLUDE) -std=c99 -g
+LDFLAGS  = -ldwarf -lelf
 
 C_SRC = $(wildcard *.c)
 OBJ = $(C_SRC:.c=.o)
