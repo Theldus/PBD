@@ -132,14 +132,15 @@
 		enum VAR_SCOPE scope;
 
 		/*
-		 * For TBASE_TYPE variables, the u64_value
+		 * For TBASE_TYPE variables, the u64_value[2]
 		 * is more than enough to hold the type. If
 		 * not TBASE_TYPE, p_value should be used to
 		 * hold a pointer to the current location.
 		 */
 		union var_value
 		{
-			uint64_t u64_value;
+			uint64_t u64_value[2];
+			long double ld_value;
 			double d_value;
 			float f_value;
 			void *p_value;

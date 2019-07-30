@@ -61,19 +61,19 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 		/* Signed values. */
 		case DW_ATE_signed:
 		case DW_ATE_signed_char:
-			switch(byte_size)
+			switch (byte_size)
 			{
 				case 1:
-					snprintf(buffer, BS, "%" PRId8,  (int8_t)  v->u64_value);
+					snprintf(buffer, BS, "%" PRId8,  (int8_t)  v->u64_value[0]);
 					break;
 				case 2:
-					snprintf(buffer, BS, "%" PRId16, (int16_t) v->u64_value);
+					snprintf(buffer, BS, "%" PRId16, (int16_t) v->u64_value[0]);
 					break;
 				case 4:
-					snprintf(buffer, BS, "%" PRId32, (int32_t) v->u64_value);
+					snprintf(buffer, BS, "%" PRId32, (int32_t) v->u64_value[0]);
 					break;
 				case 8:
-					snprintf(buffer, BS, "%" PRId64, (int64_t) v->u64_value);
+					snprintf(buffer, BS, "%" PRId64, (int64_t) v->u64_value[0]);
 					break;
 			}
 			break;
@@ -81,27 +81,37 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 		/* Unsigned values. */
 		case DW_ATE_unsigned:
 		case DW_ATE_unsigned_char:
-			switch(byte_size)
+			switch (byte_size)
 			{
 				case 1:
-					snprintf(buffer, BS, "%" PRIu8,  (uint8_t)  v->u64_value);
+					snprintf(buffer, BS, "%" PRIu8,  (uint8_t)  v->u64_value[0]);
 					break;
 				case 2:
-					snprintf(buffer, BS, "%" PRIu16, (uint16_t) v->u64_value);
+					snprintf(buffer, BS, "%" PRIu16, (uint16_t) v->u64_value[0]);
 					break;
 				case 4:
-					snprintf(buffer, BS, "%" PRIu32, (uint32_t) v->u64_value);
+					snprintf(buffer, BS, "%" PRIu32, (uint32_t) v->u64_value[0]);
 					break;
 				case 8:
-					snprintf(buffer, BS, "%" PRIu64, (uint64_t) v->u64_value);
+					snprintf(buffer, BS, "%" PRIu64, (uint64_t) v->u64_value[0]);
 					break;
 			}
 			break;
 
 		/* Floating point values, that includes float and double. */
 		case DW_ATE_float:
-			snprintf(buffer, BS, "%f", (byte_size == sizeof(double)) ?
-				v->d_value : v->f_value);
+			switch (byte_size)
+			{
+				case 4:
+					snprintf(buffer, BS, "%f", v->f_value);
+					break;
+				case 8:
+					snprintf(buffer, BS, "%f", v->d_value);
+					break;
+				case 16:
+					snprintf(buffer, BS, "%Lf", v->ld_value);
+					break;
+			}
 			break;
 
 		default:
@@ -142,23 +152,44 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 		/* Global or Static. */
 		if (v->scope == VGLOBAL)
 		{
-			if (v->byte_size <= sizeof(long))
-				value->u64_value = pt_readmemory_long(child, v->location.address);
+			if (v->byte_size <= 8)
+				value->u64_value[0] = pt_readmemory_long(child, v->location.address);
 			else
-				return (-1);
+			{
+				/*
+				 * Long double types?.
+				 */
+				if (v->byte_size == 16)
+				{
+					value->u64_value[0] = pt_readmemory_long(child, v->location.address);
+					value->u64_value[1] = pt_readmemory_long(child, v->location.address + 8);
+				}
+				else
+					return (-1);
+			}
 		}
 
 		/* Local variables. */
 		else
 		{
-			if (v->byte_size <= sizeof(long))
-			{
-				base_pointer = pt_readregister_bp(child);
-				location = base_pointer + v->location.fp_offset;
-				value->u64_value = pt_readmemory_long(child, location);
-			}
+			base_pointer = pt_readregister_bp(child);
+			location = base_pointer + v->location.fp_offset;
+
+			if (v->byte_size <= 8)
+				value->u64_value[0] = pt_readmemory_long(child, location);
 			else
-				return (-1);
+			{
+				/*
+				 * Long double types?.
+				 */
+				if (v->byte_size == 16)
+				{
+					value->u64_value[0] = pt_readmemory_long(child, location);
+					value->u64_value[1] = pt_readmemory_long(child, location + 8);
+				}
+				else
+					return (-1);
+			}
 		}
 	}
 
@@ -193,7 +224,8 @@ void var_initialize(struct array *vars, pid_t child)
 		if (v->type.var_type == TBASE_TYPE)
 		{
 			if (var_read(&v->value, v, child))
-				quit(-1, "var_initialize: wrong size type!, var name: %s\n", v->name);
+				quit(-1, "var_initialize: wrong size type!, var name: %s / "
+					"var size: %d\n", v->name, v->byte_size);
 		}
 	}
 }
@@ -236,7 +268,8 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child)
 					var_format_value(after,  &value, v->type.encoding, v->byte_size)
 				);
 				
-				v->value.u64_value = value.u64_value;
+				v->value.u64_value[0] = value.u64_value[0];
+				v->value.u64_value[1] = value.u64_value[1];
 			}
 		}
 	}

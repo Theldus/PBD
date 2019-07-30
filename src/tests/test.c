@@ -58,10 +58,11 @@ void func2(int *func2_local_argument1)
  */
 int func1(int func1_local_argument1)
 {
-	int    func1_local_a = 3;
-	int    func1_local_b;
-	double func1_local_c;
-	float  func1_local_d;
+	int         func1_local_a = 3;
+	int         func1_local_b;
+	float       func1_local_c;
+	double      func1_local_d;
+	long double func1_local_e;
 	
 	func1_local_b = 5 + func1_local_a;
 
@@ -75,9 +76,13 @@ int func1(int func1_local_argument1)
 	func2(&func1_local_b);
 
 	/* Floating-point variables. */
-	func1_local_c = 2.03;
-	func1_local_d = func1_local_c + 0.11;
-	func1_local_d++;
+	func1_local_d = 2.03;
+	func1_local_c = func1_local_d + 0.11;
+	func1_local_c++;
+
+	/* Long double test. */
+	func1_local_e = 1.1234;
+	func1_local_e++;
 
 	/*
 	 * Variables defined inside a block scope are
@@ -98,7 +103,7 @@ int func1(int func1_local_argument1)
 	 * please make it at the function scope.
 	 */
 	for (int i = 0; i < 5; i++)
-		func1_local_c = (i * 5);
+		func1_local_d = (i * 5);
 
 	/* Set all global vars. */
 	 gi8 = INT8_MAX;
