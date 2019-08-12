@@ -153,7 +153,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 		if (v->scope == VGLOBAL)
 		{
 			if (v->byte_size <= 8)
-				value->u64_value[0] = pt_readmemory_long(child, v->location.address);
+				value->u64_value[0] = pt_readmemory64(child, v->location.address);
 			else
 			{
 				/*
@@ -161,8 +161,8 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 				 */
 				if (v->byte_size == 16)
 				{
-					value->u64_value[0] = pt_readmemory_long(child, v->location.address);
-					value->u64_value[1] = pt_readmemory_long(child, v->location.address + 8);
+					value->u64_value[0] = pt_readmemory64(child, v->location.address);
+					value->u64_value[1] = pt_readmemory64(child, v->location.address + 8);
 				}
 				else
 					return (-1);
@@ -176,7 +176,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 			location = base_pointer + v->location.fp_offset;
 
 			if (v->byte_size <= 8)
-				value->u64_value[0] = pt_readmemory_long(child, location);
+				value->u64_value[0] = pt_readmemory64(child, location);
 			else
 			{
 				/*
@@ -184,8 +184,8 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 				 */
 				if (v->byte_size == 16)
 				{
-					value->u64_value[0] = pt_readmemory_long(child, location);
-					value->u64_value[1] = pt_readmemory_long(child, location + 8);
+					value->u64_value[0] = pt_readmemory64(child, location);
+					value->u64_value[1] = pt_readmemory64(child, location + 8);
 				}
 				else
 					return (-1);

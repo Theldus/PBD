@@ -23,6 +23,7 @@
  */
 
 #include "ptrace.h"
+#include "util.h"
 
 /**
  * @brief Creates a new process and executes a file
@@ -146,20 +147,32 @@ uint64_t pt_readreturn_address(pid_t child)
 }
 
 /**
- * @brief Reads a long value (usually 64-bit in x86_64) from
+ * @brief Reads a uint64_t value (usually 64-bit in x86_64) from
  * a given processs @p child and address @p addr.
  *
  * @param child Child process.
  * @param addr Address to be read.
  *
- * @return Returns a long containing a value for the specified
+ * @return Returns a uint64_t containing a value for the specified
  * address.
  */
-long pt_readmemory_long(pid_t child, uint64_t addr)
+uint64_t pt_readmemory64(pid_t child, uint64_t addr)
 {
-	long data; /* Data returned. */
-	data = ptrace(PTRACE_PEEKDATA, child, addr, NULL);
-	return (data);
+	uint64_t data; /* Data returned. */
+
+	/* Expected in 64-bit systems. */
+	if (sizeof(long) == 8)
+		return (ptrace(PTRACE_PEEKDATA, child, addr, NULL));
+
+	/* Expected in 32-bit systems. */
+	if (sizeof(long) == 4)
+	{
+		data  =  ptrace(PTRACE_PEEKDATA, child, addr, NULL);
+		data |= ((uint64_t) ptrace(PTRACE_PEEKDATA, child, addr + 4, NULL)) << 32;
+		return (data);
+	}
+	else
+		quit(-1, "pt_readmemory64: unexpected long size: %zu", sizeof(long));
 }
 
 /**

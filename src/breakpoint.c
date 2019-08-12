@@ -53,7 +53,7 @@ struct array *bp_createlist(struct array *lines, pid_t pid)
 		/* Allocates a new break point. */
 		bp = malloc(sizeof(struct breakpoint));
 		bp->addr = l->addr;
-		bp->original_byte = pt_readmemory_long(pid, bp->addr) & 0xFF;
+		bp->original_byte = pt_readmemory64(pid, bp->addr) & 0xFF;
 		bp->line_no = l->line_no;
 
 		/* Add to our array. */
@@ -81,7 +81,7 @@ int bp_createbreakpoint(uint64_t addr, struct array *bp, pid_t child)
 	/* Allocate our new breakpoint. */
 	b = malloc(sizeof(struct breakpoint));
 	b->addr = addr;
-	b->original_byte = pt_readmemory_long(child, b->addr) & 0xFF;
+	b->original_byte = pt_readmemory64(child, b->addr) & 0xFF;
 	b->line_no = 0;
 
 	/* Add to our list. */
@@ -107,7 +107,7 @@ int bp_insertbreakpoint(struct breakpoint *bp, pid_t child)
 	if (bp->addr == 0)
 		return (-1);
 
-	insn = pt_readmemory_long(child, bp->addr);
+	insn = pt_readmemory64(child, bp->addr);
 	insn = (insn & ~0xFF) | BP_OPCODE;
 	pt_writememory_long(child, bp->addr, insn);
 
@@ -181,7 +181,7 @@ void bp_skipbreakpoint(struct breakpoint *bp, pid_t child)
 	pt_setregister_pc(child, bp->addr);
 
 	/* Insert the original instruction. */
-	insn = pt_readmemory_long(child, bp->addr);
+	insn = pt_readmemory64(child, bp->addr);
 	insn = (insn & ~0xFF) | bp->original_byte;
 	pt_writememory_long(child, bp->addr, insn);
 
