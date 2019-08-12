@@ -20,10 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-CC=gcc
-INCLUDE  = $(CURDIR)/include
+CC ?= gcc
+INCLUDE = $(CURDIR)/include
+
+# Some distros like Debian Buster (10) and Ubuntu Bionic (18.04)
+# uses a different path for libdwarf, so lets use it.
+INCLUDE_DWARF = /usr/include/libdwarf/
+
 CFLAGS   = -Wall -Wextra
-CFLAGS  += -I $(INCLUDE) -std=c99 -g
+CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF)
+CFLAGS  += -std=c99 -g
 LDFLAGS  = -ldwarf -lelf
 
 C_SRC = $(wildcard *.c)

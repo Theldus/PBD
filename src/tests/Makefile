@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-CC=gcc
+CC ?= gcc
 CFLAGS  := -Wall -Wextra
 CFLAGS  += -std=c99
 CFLAGS  += -fno-omit-frame-pointer -O0 -gdwarf-2
