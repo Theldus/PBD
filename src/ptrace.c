@@ -176,15 +176,26 @@ uint64_t pt_readmemory64(pid_t child, uint64_t addr)
 }
 
 /**
- * @brief Writes a long value (usually 64-bit in x86_64) into
- * a given processs @p child and address @p addr.
+ * @brief Writes a uint64_t value into a given processs @p child
+ * and address @p addr.
  *
  * @param child Child process.
  * @param addr Address to be written.
  */
-void pt_writememory_long(pid_t child, uint64_t addr, long data)
+void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
 {
-	ptrace(PTRACE_POKEDATA, child, addr, data);
+	/* Expected in 64-bit systems. */
+	if (sizeof(long) == 8)
+		ptrace(PTRACE_POKEDATA, child, addr, data);
+
+	/* Expected in 32-bit systems. */
+	else if (sizeof(long) == 4)
+	{
+		ptrace(PTRACE_POKEDATA, child, addr    , data);
+		ptrace(PTRACE_POKEDATA, child, addr + 4, ((data >> 32) & 0xFFFFFFFF));
+	}
+	else
+		quit(-1, "pt_writememory64: unexpected long size: %zu", sizeof(long));
 }
 
 /**

@@ -51,6 +51,6 @@
 	extern char *pt_readmemory(pid_t child, uint64_t addr, size_t len);
 	extern void pt_writememory(pid_t child, uint64_t addr, char *data, size_t len);
 	extern uint64_t pt_readmemory64(pid_t child, uint64_t addr);
-	extern void pt_writememory_long(pid_t child, uint64_t addr, long data);
+	extern void pt_writememory64(pid_t child, uint64_t addr, uint64_t data);
 
 #endif /* PTRACE_H */

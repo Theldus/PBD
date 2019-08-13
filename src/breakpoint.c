@@ -109,7 +109,7 @@ int bp_insertbreakpoint(struct breakpoint *bp, pid_t child)
 
 	insn = pt_readmemory64(child, bp->addr);
 	insn = (insn & ~0xFF) | BP_OPCODE;
-	pt_writememory_long(child, bp->addr, insn);
+	pt_writememory64(child, bp->addr, insn);
 
 	return (0);
 }
@@ -183,7 +183,7 @@ void bp_skipbreakpoint(struct breakpoint *bp, pid_t child)
 	/* Insert the original instruction. */
 	insn = pt_readmemory64(child, bp->addr);
 	insn = (insn & ~0xFF) | bp->original_byte;
-	pt_writememory_long(child, bp->addr, insn);
+	pt_writememory64(child, bp->addr, insn);
 
 	/* Execute and wait. */
 	pt_continue_single_step(child);
@@ -191,5 +191,5 @@ void bp_skipbreakpoint(struct breakpoint *bp, pid_t child)
 
 	/* Enables the breakpoint again. */
 	insn = (insn & ~0xFF) | BP_OPCODE;
-	pt_writememory_long(child, bp->addr, insn);
+	pt_writememory64(child, bp->addr, insn);
 }
