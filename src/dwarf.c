@@ -421,7 +421,7 @@ static int dw_parse_variable_type
 			
 			var->byte_size = 1;
 			var->type.array.size_per_element = byte_size;
-			var->type.var_type = var_type;
+			var->type.array.var_type = var_type;
 			var->type.encoding = encoding;
 
 			/* Dimensions. (aka DW_TAG_subrange_type) */

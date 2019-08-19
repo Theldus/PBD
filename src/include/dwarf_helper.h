@@ -172,6 +172,7 @@
 			 */
 			struct arrayt
 			{
+				int var_type;
 				size_t size_per_element;
 				int dimensions;
 				int elements_per_dimension[MATRIX_MAX_DIMENSIONS];

@@ -81,8 +81,9 @@ void dump_vars(struct array *vars)
 		/* Check if array. */
 		if (v->type.array.dimensions > 0)
 		{
-			printf("  Array (%d dimensions) (size per element: %zu): \n",
-				v->type.array.dimensions, v->type.array.size_per_element);
+			printf("  Array (%d dimensions) (size per element: %zu) (type: %d): \n",
+				v->type.array.dimensions, v->type.array.size_per_element,
+				v->type.array.var_type);
 			
 			printf("    ");
 			for (int i = 0; i < v->type.array.dimensions; i++)
@@ -130,7 +131,7 @@ int setup(const char *file, const char *function)
 	context.vars = get_all_variables(&context.dw);
 	context.lines = get_all_lines(&context.dw);
 	context.depth = 0;
-	
+
 	/* 
 	 * Since all dwarf analysis are static, when the analysis
 	 * is over, we can already free the dwarf context.
