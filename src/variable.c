@@ -193,6 +193,34 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 		}
 	}
 
+	/* Arrays. */
+	else if (v->type.var_type == TARRAY)
+	{
+		/*
+		 * At the moment, PBD only cares about base types, so we need
+		 * to check first.
+		 *
+		 * TODO: Implement other types.
+		 */
+		if (v->type.array.var_type == TBASE_TYPE)
+		{
+			/* Global or Static. */
+			if (v->scope == VGLOBAL)
+				value->p_value = pt_readmemory(child, v->location.address, v->byte_size);
+
+			/* Local. */
+			else
+			{
+				base_pointer = pt_readregister_bp(child);
+				location = base_pointer + v->location.fp_offset;
+				value->p_value = pt_readmemory(child, location, v->byte_size);
+			}
+		}
+
+		else
+			return (-1);
+	}
+
 	/* TODO: Implement the other cases here. */
 	else
 		return (-1);
@@ -221,11 +249,35 @@ void var_initialize(struct array *vars, pid_t child)
 		struct dw_variable *v;
 		v = array_get(&vars, i, NULL);
 
+		/* Base types. */
 		if (v->type.var_type == TBASE_TYPE)
 		{
 			if (var_read(&v->value, v, child))
 				quit(-1, "var_initialize: wrong size type!, var name: %s / "
 					"var size: %d\n", v->name, v->byte_size);
+		}
+
+		/* Arrays. */
+		else if (v->type.var_type == TARRAY)
+		{
+			/*
+			 * At the moment, PBD only cares about base types, so we need
+			 * to check first.
+			 *
+			 * TODO: Implement other types.
+			 */
+			if (v->type.array.var_type == TBASE_TYPE)
+			{
+				/* Allocates the space. */
+				if ( (v->value.p_value = malloc(v->byte_size)) == NULL)
+					quit(-1, "var_initialize: error while allocating memory for, "
+						"var name: %s / var size: %d\n", v->name, v->byte_size);
+
+				/* Initialize. */
+				if (var_read(&v->value, v, child))
+					quit(-1, "var_initialize: wrong size type!, var name: %s / "
+						"var size: %d\n", v->name, v->byte_size);
+			}
 		}
 	}
 }
@@ -260,7 +312,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child)
 
 			if (memcmp(&value.u64_value, &v->value.u64_value, v->byte_size))
 			{
-				printf("[Line: %d] [%s] [%s] has changed!, before: %s, after: %s\n",
+				printf("[Line: %d] [%s] (%s) has changed!, before: %s, after: %s\n",
 					b->line_no,
 					(v->scope == VGLOBAL) ? "global" : "local",
 					v->name,
@@ -270,6 +322,115 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child)
 				
 				v->value.u64_value[0] = value.u64_value[0];
 				v->value.u64_value[1] = value.u64_value[1];
+			}
+		}
+
+		/* If array. */
+		else if (v->type.var_type == TARRAY)
+		{
+			/*
+			 * At the moment, PBD only cares about base types, so we need
+			 * to check first.
+			 *
+			 * TODO: Implement other types.
+			 */
+			if (v->type.array.var_type == TBASE_TYPE)
+			{
+				int changed;
+				char *v1;
+				char *v2;
+				size_t size_per_element;
+
+				/* Read and compares its value. */
+				var_read(&value, v, child);
+
+				/* Setup pointers and data. */
+				v1 = (char *)v->value.p_value;
+				v2 = (char *)value.p_value;
+				size_per_element = v->type.array.size_per_element;
+				changed = 0;
+
+				/* Compares each position */
+				for (size_t i = 0; i < v->byte_size; i += size_per_element)
+				{
+					if (memcmp(v1, v2, size_per_element))
+					{
+						union var_value value1;
+						union var_value value2;
+						changed = 1;
+
+						value1.u64_value[0] = *( uint64_t *)v1;
+						value1.u64_value[1] = *((uint64_t *)v1 + 8);
+						value2.u64_value[0] = *( uint64_t *)v2;
+						value2.u64_value[1] = *((uint64_t *)v2 + 8);
+
+						/* If one dimension. */
+						if (v->type.array.dimensions == 1)
+						{
+							printf("[Line: %d] [%s] (%s[%zu]) has changed!, before: %s, after: %s\n",
+								b->line_no,
+								(v->scope == VGLOBAL) ? "global" : "local",
+								v->name,
+								i / size_per_element,
+								var_format_value(before, &value1, v->type.encoding, size_per_element),
+								var_format_value(after,  &value2, v->type.encoding, size_per_element)
+							);
+						}
+
+						/* If multiple dimensions. */
+						else
+						{
+							int div;
+							int index_per_dimension[MATRIX_MAX_DIMENSIONS] = {0};
+							int idx_dim;
+
+							div = i / size_per_element;
+							idx_dim = v->type.array.dimensions - 1;
+
+							/* Calculate indexes. */
+							for (int j = 0; j < v->type.array.dimensions && div; j++)
+							{
+								index_per_dimension[idx_dim] =
+									div % v->type.array.elements_per_dimension[idx_dim];
+
+								div /= v->type.array.elements_per_dimension[idx_dim];
+								idx_dim--;
+							}
+
+							/* Print indexes and values. */
+							printf("[Line: %d] [%s] (%s",
+								b->line_no,
+								(v->scope == VGLOBAL) ? "global" : "local",
+								v->name
+							);
+
+							for (int j = 0; j < v->type.array.dimensions; j++)
+								printf("[%d]", index_per_dimension[j]);
+
+							printf(") has changed!, before: %s, after: %s\n",
+								var_format_value(before, &value1, v->type.encoding, size_per_element),
+								var_format_value(after,  &value2, v->type.encoding, size_per_element)
+							);
+						}
+					}
+
+					v1 += size_per_element;
+					v2 += size_per_element;
+				}
+
+				/*
+				 * If there is any change, deallocates the old buffer and
+				 * points to the new allocated ;-).
+				 *
+				 * Important note: Maybe there's some overhead of allocating/
+				 * deallocating everytime but at least the memory footprint is
+				 * smaller than keeping two buffers.
+				 */
+				if (changed)
+				{
+					free(v->value.p_value);
+					v->value.p_value = value.p_value;
+				}
 			}
 		}
 	}

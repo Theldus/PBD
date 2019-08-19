@@ -40,6 +40,10 @@ uint32_t gu32;
 int64_t  gi64;
 uint64_t gu64;
 
+/* Arrays Test. */
+char array1dim[10] = {0};
+int array10x10[10][10][10][10];
+
 /*
  * Changing vars outside the monitored function.
  */
@@ -64,6 +68,15 @@ int func1(int func1_local_argument1)
 	double      func1_local_d;
 	long double func1_local_e;
 	
+	/* Arrays single dimension test. */
+	for (size_t i = 0; i < 10; i++)
+		array1dim[i] = i+1;
+
+	array1dim[9] += 9;
+
+	/* Array multiple dimension test. */
+	array10x10[5][7][6][1]++;
+
 	func1_local_b = 5 + func1_local_a;
 
 	/* Change an argument/local var. */

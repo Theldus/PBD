@@ -143,7 +143,7 @@
 			long double ld_value;
 			double d_value;
 			float f_value;
-			void *p_value;
+			char *p_value;
 		} value;
 
 		/*
