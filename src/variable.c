@@ -268,11 +268,6 @@ void var_initialize(struct array *vars, pid_t child)
 			 */
 			if (v->type.array.var_type == TBASE_TYPE)
 			{
-				/* Allocates the space. */
-				if ( (v->value.p_value = malloc(v->byte_size)) == NULL)
-					quit(-1, "var_initialize: error while allocating memory for, "
-						"var name: %s / var size: %d\n", v->name, v->byte_size);
-
 				/* Initialize. */
 				if (var_read(&v->value, v, child))
 					quit(-1, "var_initialize: wrong size type!, var name: %s / "
@@ -359,10 +354,12 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child)
 						union var_value value2;
 						changed = 1;
 
-						value1.u64_value[0] = *( uint64_t *)v1;
-						value1.u64_value[1] = *((uint64_t *)v1 + 8);
-						value2.u64_value[0] = *( uint64_t *)v2;
-						value2.u64_value[1] = *((uint64_t *)v2 + 8);
+						/*
+						 * Fill the value1 and 2 with the element
+						 * read in the iteration.
+						 */
+						memcpy(value1.u8_value, v1, size_per_element);
+						memcpy(value2.u8_value, v2, size_per_element);
 
 						/* If one dimension. */
 						if (v->type.array.dimensions == 1)
@@ -431,6 +428,8 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child)
 					free(v->value.p_value);
 					v->value.p_value = value.p_value;
 				}
+				else
+					free(value.p_value);
 			}
 		}
 	}

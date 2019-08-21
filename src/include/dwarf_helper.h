@@ -139,10 +139,20 @@
 		 */
 		union var_value
 		{
+			/* Arrays of u8 and u64 facilities. */
+			uint8_t u8_value[16];
 			uint64_t u64_value[2];
+
+			/*
+			 * Floating point numbers looks like have
+			 * an proper formatting that does not works
+			 * by just casting, so we need these types here.
+			 */
 			long double ld_value;
 			double d_value;
 			float f_value;
+
+			/* Array, structures... pointer. */
 			char *p_value;
 		} value;
 

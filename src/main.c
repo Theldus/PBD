@@ -151,6 +151,11 @@ void finish(void)
 	{
 		struct dw_variable *v;
 		v = array_remove(&context.vars, 0, NULL);
+
+		if (v->type.var_type == TARRAY)
+			if (v->value.p_value != NULL)
+				free(v->value.p_value);
+
 		free(v->name);
 		free(v);
 	}
@@ -261,6 +266,21 @@ void do_analysis(const char *file, const char *function)
 		 */
 		if (pc == context.return_addr)
 		{
+			/*
+			 * Since we're returning from an previous call, we also
+			 * need to free all (possible) arrays allocated first.
+			 */
+			for (int i = 0; i < (int) array_size(&context.vars); i++)
+			{
+				struct dw_variable *v;
+				v = array_get(&context.vars, i, NULL);
+				if (v->type.var_type == TARRAY)
+				{
+					free(v->value.p_value);
+					v->value.p_value = NULL;
+				}
+			}
+
 			/* Decrements the context and continues. */
 			context.depth--;
 			bp_skipbreakpoint(bp, child);
