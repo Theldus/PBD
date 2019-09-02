@@ -33,6 +33,7 @@
 
 	extern void var_initialize(struct array *vars, pid_t child);
 
-	extern void var_check_changes(struct breakpoint *bp, struct array *vars, pid_t child);
+	extern void var_check_changes(struct breakpoint *bp, struct array *vars,
+		pid_t child, int depth);
 
 #endif /* VARIABLE_H */

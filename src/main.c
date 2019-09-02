@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,34 +24,38 @@
 
 #include "breakpoint.h"
 #include "dwarf_helper.h"
+#include "function.h"
 #include "ptrace.h"
 #include "util.h"
 #include "variable.h"
 #include <inttypes.h>
 
+/* Depth, useful for recursive analysis. */
+int depth;
+
+/* Dwarf Utils current context. */
+struct dw_utils dw;
+
+/* Program lines. */
+struct array *lines;
+
+/* Breakpoints. */
+struct array *breakpoints;
+
 /**
  * @brief Current function context.
  */
-struct context
+struct function
 {
-	/* Depth, useful for recursive analysis. */
-	int depth;
-
-	/* Dwarf Utils current context. */
-	struct dw_utils dw;
-
 	/* All variables found. */
 	struct array *vars;
 
-	/* Program lines. */
-	struct array *lines;
-
-	/* Breakpoints. */
-	struct array *breakpoints;
-
 	/* Return address. */
 	uint64_t return_addr;
-} context;
+};
+
+/* Function context. */
+static struct array *context;
 
 /**
  * @brief Dump all variables found in the target function.
@@ -84,7 +88,7 @@ void dump_vars(struct array *vars)
 			printf("  Array (%d dimensions) (size per element: %zu) (type: %d): \n",
 				v->type.array.dimensions, v->type.array.size_per_element,
 				v->type.array.var_type);
-			
+
 			printf("    ");
 			for (int i = 0; i < v->type.array.dimensions; i++)
 				printf("[%d], ", v->type.array.elements_per_dimension[i]);
@@ -121,22 +125,29 @@ void dump_lines(struct array *lines)
  */
 int setup(const char *file, const char *function)
 {
+	struct function *f; /* First function context. */
+
 	/* Initializes dwarf. */
-	dw_init(file, &context.dw);
+	dw_init(file, &dw);
 
 	/* Searches for the target function */
-	get_address_by_function(&context.dw, function);
+	get_address_by_function(&dw, function);
+
+	/* Initialize first function context. */
+	array_init(&context);
+		f = calloc(1, sizeof(struct function));
+	array_add(&context, f);
 
 	/* Parses all variables and lines. */
-	context.vars = get_all_variables(&context.dw);
-	context.lines = get_all_lines(&context.dw);
-	context.depth = 0;
+	f->vars = get_all_variables(&dw);
+	lines = get_all_lines(&dw);
+	depth = 0;
 
-	/* 
+	/*
 	 * Since all dwarf analysis are static, when the analysis
 	 * is over, we can already free the dwarf context.
 	 */
-	dw_finish(&context.dw);
+	dw_finish(&dw);
 	return (0);
 }
 
@@ -145,12 +156,16 @@ int setup(const char *file, const char *function)
  */
 void finish(void)
 {
+	struct function *f; /* Context function. */
+
 	/* Deallocate variables. */
-	int size = (int) array_size(&context.vars);
+	f = array_get(&context, 0, NULL);
+	int size = (int) array_size(&f->vars);
+
 	for (int i = 0; i < size; i++)
 	{
 		struct dw_variable *v;
-		v = array_remove(&context.vars, 0, NULL);
+		v = array_remove(&f->vars, 0, NULL);
 
 		if (v->type.var_type == TARRAY)
 			if (v->value.p_value != NULL)
@@ -159,27 +174,31 @@ void finish(void)
 		free(v->name);
 		free(v);
 	}
-	array_finish(&context.vars);
+	array_finish(&f->vars);
+	free(f);
+
+	/* Deallocate context. */
+	array_finish(&context);
 
 	/* Deallocate lines. */
-	size = (int) array_size(&context.lines);
+	size = (int) array_size(&lines);
 	for (int i = 0; i < size; i++)
 	{
 		struct dw_lines *l;
-		l = array_remove(&context.lines, 0, NULL);
+		l = array_remove(&lines, 0, NULL);
 		free(l);
 	}
-	array_finish(&context.lines);
+	array_finish(&lines);
 
 	/* Deallocate breakpoints. */
-	size = (int) array_size(&context.breakpoints);
+	size = (int) array_size(&breakpoints);
 	for (int i = 0; i < size; i++)
 	{
 		struct breakpoint *p;
-		p = array_remove(&context.breakpoints, 0, NULL);
+		p = array_remove(&breakpoints, 0, NULL);
 		free(p);
 	}
-	array_finish(&context.breakpoints);
+	array_finish(&breakpoints);
 }
 
 /**
@@ -192,7 +211,8 @@ void do_analysis(const char *file, const char *function)
 {
 	pid_t child;                /* Spawned child process. */
 	int init_vars;              /* Initialize vars flags. */
-	struct breakpoint *prev_bp; /* Previous breakpoint. */
+	struct breakpoint *prev_bp; /* Previous breakpoint.   */
+	struct function *f;         /* Context function.      */
 
 	/*
 	 * Setup everything and get ready to analyze.
@@ -204,14 +224,15 @@ void do_analysis(const char *file, const char *function)
 	/* Tries to spawn the process. */
 	if ((child = pt_spawnprocess(file)) < 0)
 		quit(-1, "do_analysis: error while spawning the child process!\n");
-	
+
 	/* Wait child and create the breakpoint list. */
 	pt_waitchild();
 	{
-		context.breakpoints = bp_createlist(context.lines, child);
-		if (bp_insertbreakpoints(context.breakpoints, child))
+		breakpoints = bp_createlist(lines, child);
+		if (bp_insertbreakpoints(breakpoints, child))
 			quit(-1, "do_analysis: error while inserting breakpoints!\n");
 	}
+
 	pt_continue_single_step(child);
 	init_vars = 0;
 	prev_bp = NULL;
@@ -221,11 +242,16 @@ void do_analysis(const char *file, const char *function)
 	/* Main loop. */
 	while (pt_waitchild() != PT_CHILD_EXIT)
 	{
+		char *indent_buff;
+		int current_depth;
 		uint64_t pc;
 		struct breakpoint *bp;
-		
+
+		f  = array_get_last(&context, NULL);
 		pc = pt_readregister_pc(child) - 1;
-		bp = bp_findbreakpoint(pc, context.breakpoints);
+		bp = bp_findbreakpoint(pc, breakpoints);
+		current_depth = array_size(&context);
+		indent_buff   = NULL;
 
 		/* If not valid breakpoint, continues. */
 		if (bp == NULL)
@@ -234,14 +260,52 @@ void do_analysis(const char *file, const char *function)
 			continue;
 		}
 
-		/* 
+		/*
 		 * Since we are the very first instruction of the
 		 * function, there is nothing to analyze here, yet.
 		 */
-		if (pc == context.dw.dw_func.low_pc)
+		if (pc == dw.dw_func.low_pc)
 		{
-			if (context.depth++ > 0)
-				quit(-1, "do_analysis: recursive analysis not supported yet!\n");
+			if (current_depth > 0 && depth > 0)
+			{
+				struct dw_variable *prev_v, *v;
+				struct function *prev_f;
+				int size;
+
+				prev_f = array_get(&context, current_depth - 1, NULL);
+				size = (int) array_size(&prev_f->vars);
+
+				/* Allocates a new function context. */
+				f = calloc(1, sizeof(struct function));
+				array_init(&f->vars);
+
+				/*
+				 * Copies all the old variables into the new context.
+				 */
+				for (int i = 0; i < size; i++)
+				{
+					prev_v = array_get(&prev_f->vars, i, NULL);
+					v = calloc(1, sizeof(struct dw_variable));
+
+					/* Do a quick n' dirty shallow copy. */
+					memcpy(v, prev_v, sizeof(struct dw_variable));
+
+					/* Change the remaining important items:
+					 * - Name
+					 * - Value
+					 */
+					v->name = malloc(sizeof(char) * (strlen(prev_v->name) + 1));
+					strcpy(v->name, prev_v->name);
+
+					v->value.u64_value[0] = 0;
+					v->value.u64_value[1] = 0;
+
+					/* Add into array. */
+					array_add(&f->vars, v);
+				}
+
+				array_add(&context, f);
+			}
 
 			/*
 			 * It is important to set a breakpoint on the next instruction
@@ -249,12 +313,13 @@ void do_analysis(const char *file, const char *function)
 			 * to know when to enter or exit the function. Especially useful
 			 * for recursive analysis.
 			 */
-			bp_createbreakpoint(context.return_addr = pt_readreturn_address(child),
-				context.breakpoints, child);
+			bp_createbreakpoint(f->return_addr = pt_readreturn_address(child),
+				breakpoints, child);
 
 			/* Executes that breakpoint. */
 			bp_skipbreakpoint(bp, child);
 
+			depth++;
 			prev_bp = bp;
 			init_vars = 1;
 			pt_continue(child);
@@ -264,25 +329,44 @@ void do_analysis(const char *file, const char *function)
 		/*
 		 * Returning from a previous call.
 		 */
-		if (pc == context.return_addr)
+		if (pc == f->return_addr)
 		{
+			printf("%s[depth: %d] Returning to function...\n\n",
+				(indent_buff = fn_get_indent(current_depth)), current_depth);
+
+			fn_free_indent(indent_buff);
+
 			/*
 			 * Since we're returning from an previous call, we also
 			 * need to free all (possible) arrays allocated first.
 			 */
-			for (int i = 0; i < (int) array_size(&context.vars); i++)
+			for (int i = 0; i < (int) array_size(&f->vars); i++)
 			{
 				struct dw_variable *v;
-				v = array_get(&context.vars, i, NULL);
+				v = array_get(&f->vars, i, NULL);
+
 				if (v->type.var_type == TARRAY)
 				{
 					free(v->value.p_value);
 					v->value.p_value = NULL;
 				}
+
+				if (current_depth > 1)
+				{
+					free(v->name);
+					free(v);
+				}
+			}
+
+			/* Deallocates array and remove the last level. */
+			if (current_depth > 1)
+			{
+				array_finish(&f->vars);
+				free( array_remove_last(&context, NULL) );
 			}
 
 			/* Decrements the context and continues. */
-			context.depth--;
+			depth--;
 			bp_skipbreakpoint(bp, child);
 			pt_continue(child);
 			continue;
@@ -299,14 +383,18 @@ void do_analysis(const char *file, const char *function)
 		 */
 		if (init_vars)
 		{
-			printf("\n[depth: %d] Entering function...\n", context.depth);
+			printf("\n%s[depth: %d] Entering function...\n",
+				(indent_buff = fn_get_indent(current_depth)), current_depth);
+
+			fn_free_indent(indent_buff);
+
 			init_vars = 0;
-			var_initialize(context.vars, child);
+			var_initialize(f->vars, child);
 		}
 
 		/* Do something. */
 		if (prev_bp != NULL)
-			var_check_changes(prev_bp, context.vars, child);
+			var_check_changes(prev_bp, f->vars, child, current_depth);
 
 		prev_bp = bp;
 
