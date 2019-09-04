@@ -252,9 +252,42 @@ void var_initialize(struct array *vars, pid_t child)
 		/* Base types. */
 		if (v->type.var_type == TBASE_TYPE)
 		{
-			if (var_read(&v->value, v, child))
-				quit(-1, "var_initialize: wrong size type!, var name: %s / "
-					"var size: %d\n", v->name, v->byte_size);
+			/*
+			 * While initializing the variables, we do not know in advance
+			 * when the variable will first be initialized, which means that
+			 * before this happens, the stack/variable will maintain garbagge
+			 * values, that do not reflect reality.
+			 *
+			 * To work around this, 'scratch_value' will keep the first value
+			 * right after the prologue and, as long as the variable is not 
+			 * initialized, all comparisons will be against scratch_value
+			 * instead of value (see var_check_changes()) and if and only if a
+			 * difference is detected, PBD will assume that the local variable
+			 * has been initialized and thus properly print an appropriate
+			 * 'before' value (i.e: 0 or 0.0 for floating-point), instead of
+			 * garbagge value.
+			 *
+			 * This assures us that the output will be consistent regardless
+			 * of the stack organization before the value is set correctly, ;-).
+			 */
+			if (v->scope != VGLOBAL)
+			{
+				if (var_read(&v->scratch_value, v, child))
+					quit(-1, "var_initialize: wrong size type!, var name: %s / "
+						"var size: %d\n", v->name, v->byte_size);
+
+				v->initialized = 0;
+			}
+
+			/* If global, there's no need to initialize them. */
+			else
+			{
+				if (var_read(&v->value, v, child))
+					quit(-1, "var_initialize: wrong size type!, var name: %s / "
+						"var size: %d\n", v->name, v->byte_size);
+
+				v->initialized = 1;
+			}
 		}
 
 		/* Arrays. */
@@ -272,6 +305,8 @@ void var_initialize(struct array *vars, pid_t child)
 				if (var_read(&v->value, v, child))
 					quit(-1, "var_initialize: wrong size type!, var name: %s / "
 						"var size: %d\n", v->name, v->byte_size);
+
+				v->initialized = 1;
 			}
 		}
 	}
@@ -305,6 +340,38 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child)
 			/* Read and compares its value. */
 			var_read(&value, v, child);
 
+			/*
+			 * Checks if the variable was initialized, if not compare with its
+			 * scratch value, and if differs, the variable was finally initialized.
+			 */
+			if (!v->initialized)
+			{
+				if (memcmp(&value.u64_value, &v->scratch_value.u64_value, v->byte_size))
+				{
+					v->value.u64_value[0] = value.u64_value[0];
+					v->value.u64_value[1] = value.u64_value[1];
+					v->initialized = 1;
+
+					if (v->type.encoding != DW_ATE_float)
+					{
+						v->scratch_value.u64_value[0] = 0;
+						v->scratch_value.u64_value[0] = 0;
+					}
+					else
+						v->scratch_value.ld_value = 0.0;
+
+					printf("[Line: %d] [%s] (%s) initialized!, before: %s, after: %s\n",
+						b->line_no,
+						(v->scope == VGLOBAL) ? "global" : "local",
+						v->name,
+						var_format_value(before, &v->scratch_value, v->type.encoding, v->byte_size),
+						var_format_value(after,  &value, v->type.encoding, v->byte_size)
+					);
+				}
+				continue;
+			}
+
+			/* If the variable was already initialized, lets check normally. */
 			if (memcmp(&value.u64_value, &v->value.u64_value, v->byte_size))
 			{
 				printf("[Line: %d] [%s] (%s) has changed!, before: %s, after: %s\n",

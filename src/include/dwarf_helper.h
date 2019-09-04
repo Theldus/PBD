@@ -157,6 +157,28 @@
 		} value;
 
 		/*
+		 * Right after the prologue, the variable is likely
+		 * to be not initialized yet, so the scratch_value
+		 * holds the very first variable value read and uses
+		 * it to compare at each variable check.
+		 *
+		 * If the current value differs from scratch value, it
+		 * means that the variable was set for the first time
+		 * and thus, PBD can properly show a comprehensible
+		 * output, instead of trash data.
+		 *
+		 * Yeah, it's kinda waste of memory, spending ~16 bytes
+		 * just to properly initialize the variable, if anyone
+		 * have an a better idea....
+		 */
+		union var_value scratch_value;
+
+		/*
+		 * Flag indicating that the variable has been initialized.
+		 */
+		int initialized;
+
+		/*
 		 * If the variable is global or static,
 		 * the address should be used, if local,
 		 * fp_offset.
