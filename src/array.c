@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,13 +39,13 @@ int array_init(struct array **array)
 	out = calloc(1, sizeof(struct array));
 	if (out == NULL)
 		return (-1);
-	
+
 	out->capacity = ARRAY_UTILS_DEFAULT_SIZE;
 	out->elements = 0;
 	out->buf = calloc(out->capacity, sizeof(void *));
 	if (out->buf == NULL)
 		return (-1);
-	
+
 	*array = out;
 	return (0);
 }
@@ -63,7 +63,7 @@ int array_finish(struct array **array)
 	/* Invalid array. */
 	if (*array == NULL)
 		return (-1);
-		
+
 	free((*array)->buf);
 	free(*array);
 	return (0);
@@ -84,8 +84,12 @@ int array_add(struct array **ar, void *e)
 	void **new_buf;       /* New buffer.   */
 	size_t old_capacity;  /* Old capacity. */
 	size_t new_capacity;  /* New capacity. */
-	
+
 	array = *ar;
+
+	/* Array exists?. */
+	if (array == NULL)
+		return (-1);
 
 	/* If bigger than capacity. */
 	if (array->elements >= array->capacity)
@@ -102,7 +106,7 @@ int array_add(struct array **ar, void *e)
 
 		array->capacity = new_capacity;
 	}
-	
+
 	/* Stores the element. */
 	array->buf[array->elements] = e;
 	array->elements++;
@@ -123,11 +127,11 @@ void* array_remove(struct array **ar, size_t pos, void **e)
 {
 	struct array *array; /* Array.            */
 	void *ret;           /* Returned element. */
-	
+
 	array = *ar;
 
-	/* Invalid position. */
-	if (pos >= array->elements)
+	/* Array exists and has a valid position?. */
+	if (array == NULL || pos >= array->elements)
 		return (NULL);
 
 	ret = array->buf[pos];
@@ -146,6 +150,23 @@ void* array_remove(struct array **ar, size_t pos, void **e)
 }
 
 /**
+ * Removes the last element from the specified array.
+ *
+ * @param ar Array structure pointer.
+ * @param e Element to be returned.
+ *
+ * @return Returns the removed element or NULL if array empty.
+ */
+void *array_remove_last(struct array **ar, void **e)
+{
+	/* Array exists and has at least one valid element. */
+	if (*ar == NULL || (*ar)->elements < 1)
+		return (NULL);
+
+	return ( array_remove(ar, (*ar)->elements - 1, e) );
+}
+
+/**
  * Gets the element from the given position.
  *
  * @param array Array structure pointer.
@@ -157,15 +178,36 @@ void* array_remove(struct array **ar, size_t pos, void **e)
  */
 void* array_get(struct array **array, size_t pos, void **e)
 {
-	/* Valid positions. */
-	if (pos > (*array)->elements)
+	/* Array exists and has a valid position. */
+	if (*array == NULL || pos > (*array)->elements)
 		return (NULL);
-	
+
 	/* Valid pointer. */
 	if (e != NULL)
 		*e = (*array)->buf[pos];
-	
+
 	return ( (*array)->buf[pos] );
+}
+
+/**
+ * Gets the last element from the specified array.
+ *
+ * @param array Array structure pointer.
+ * @param e Eelement to be returned.
+ *
+ * @return Returns the last element or NULL if array empty.
+ */
+void *array_get_last(struct array **array, void **e)
+{
+	/* Array exists and theres at least one valid element. */
+	if (*array == NULL || (*array)->elements < 1)
+		return (NULL);
+
+	/* Valid pointer. */
+	if (e != NULL)
+		*e = (*array)->buf[(*array)->elements - 1];
+
+	return ( (*array)->buf[(*array)->elements - 1] );
 }
 
 /**
@@ -265,7 +307,7 @@ int array_removehalf(struct array *array, int size)
 	for (int i = 0; i < size/2; i++)
 	{
 		int *el = (int *) array_remove(&array, 0, NULL);
-		
+
 		if (el != NULL)
 			free(el);
 		else
@@ -324,7 +366,7 @@ int array_remove_rem_half(struct array *array, int size)
 	for (int i = 0; i < size/2; i++)
 	{
 		int *el = (int *) array_remove(&array, 0, NULL);
-		
+
 		if (el != NULL)
 			free(el);
 		else
@@ -354,7 +396,7 @@ int array_selftest(void)
 {
 	#define ARRAY_SIZE 32000
 	struct array *array;
-	
+
 	/* Initializes array. */
 	array_init(&array);
 
