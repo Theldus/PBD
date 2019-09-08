@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -42,7 +42,11 @@ uint64_t gu64;
 
 /* Arrays Test. */
 char array1dim[10] = {0};
-int array10x10[10][10][10][10];
+int array10x10[10][10][10];
+
+/*===========================================================================*
+ * Iterative analysis                                                        *
+ *===========================================================================*/
 
 /*
  * Changing vars outside the monitored function.
@@ -67,7 +71,7 @@ int func1(int func1_local_argument1)
 	float       func1_local_c;
 	double      func1_local_d;
 	long double func1_local_e;
-	
+
 	/* Arrays single dimension test. */
 	for (size_t i = 0; i < 10; i++)
 		array1dim[i] = i+1;
@@ -75,14 +79,14 @@ int func1(int func1_local_argument1)
 	array1dim[9] += 9;
 
 	/* Array multiple dimension test. */
-	array10x10[5][7][6][1]++;
+	array10x10[5][7][6]++;
 
 	func1_local_b = 5 + func1_local_a;
 
 	/* Change an argument/local var. */
 	func1_local_argument1++;
 
-	/* 
+	/*
 	 * If a function changes a local or global
 	 * variable, this change will also be tracked.
 	 */
@@ -104,7 +108,7 @@ int func1(int func1_local_argument1)
 	{
 		int func1_block_a;
 		int func1_block_b;
-		
+
 		func1_block_a = 42;
 		func1_block_b = func1_block_a + 1;
 		func1_block_b++;
@@ -131,6 +135,33 @@ int func1(int func1_local_argument1)
 	return (0);
 }
 
+/*===========================================================================*
+ * Recursive analysis                                                        *
+ *===========================================================================*/
+
+/**
+ * Factorial function.
+ *
+ * @param Current factorial number.
+ *
+ * @return Returns the factorial of n.
+ */
+uint64_t factorial(uint64_t n)
+{
+	uint64_t result;
+	if(n == 0)
+	{
+		result = 1;
+		return (result);
+	}
+	else
+	{
+		result = n;
+		result = n * factorial(n - 1);
+		return (result);
+	}
+}
+
 /**
  * Entry point
  */
@@ -139,6 +170,8 @@ int main()
 	/* Multiples function calls. */
 	for (int i = 0; i < 2; i++)
 		func1(i);
+
+	factorial(10);
 
 	return (0);
 }
