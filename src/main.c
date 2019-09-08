@@ -414,7 +414,7 @@ void do_analysis(const char *file, const char *function)
  */
 int main(int argc, char **argv)
 {
-	do_analysis("tests/test", "func1");
+	do_analysis(argv[1], argv[2]);
 
 	return (0);
 }

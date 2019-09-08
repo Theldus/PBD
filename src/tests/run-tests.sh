@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+
+#
 # MIT License
 #
 # Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
@@ -19,49 +22,21 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-CC ?= gcc
-CFLAGS  := -Wall -Wextra
-CFLAGS  += -std=c99
-CFLAGS  += -fno-omit-frame-pointer -O0 -gdwarf-2
-
 #
-# PIE Support check
-#
-# In order to PBD works as expected, every source intended to be analyzed
-# _should_ be built with at least -O0 and -gdwarf-2, this is not optional,
-# nonetheless, it's also highly desirable that the frame pointer is not
-# ommited, thus: -fno-omit-frame-pointer.
-#
-# Last but not least, PBD doesn't support 'Position Independent Executables'
-# and all the addresses need to be known from before execution. Since some
-# compilers build 'PIE' executables (yeah, redundant ;-)) by default, we
-# also need to check this in execution time.
-#
-# ---
-# This solution is not the best but at least cover GCC and CLANG...
-#
-PIE_SUPPORT := $(shell echo "int main(){}" | $(CC) -x c -; file a.out \
-	| grep -Ec "shared|pie"; rm a.out &> /dev/null)
 
-ifeq ($(PIE_SUPPORT), 1)
-	CFLAGS += -no-pie
-endif
+PBD_FOLDER=$(readlink -f ../)
 
-# Source
-C_SRC = $(wildcard *.c)
-OBJ = $(C_SRC:.c=.o)
+#Run iterative and recursive tests
+{
+	$PBD_FOLDER/pbd test func1 &&\
+	$PBD_FOLDER/pbd test factorial
+} &> /dev/null
 
-%.o: %.c
-	$(CC) $< $(CFLAGS) -c -o $@
-
-all: test run_tests
-
-test: $(OBJ)
-	$(CC) $^ $(CFLAGS) -o $@
-
-run_tests: test
-	@bash run-tests.sh
-
-clean:
-	@rm -f $(OBJ) test
+if [ $? -eq 0 ]
+then
+	echo "Tests [PASSED]"
+	exit 0
+else
+	echo "Tests [NOT PASSED]"
+	exit 1
+fi
