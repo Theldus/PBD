@@ -26,7 +26,11 @@
 #define VARIABLE_H
 
 	#include "array.h"
+	#include "dwarf_helper.h"
+	#include "breakpoint.h"
 	#include  <sys/types.h>
+
+	extern void var_dump(struct array *vars);
 
 	extern int var_read(union var_value *value, struct dw_variable *v,
 		pid_t child);
@@ -35,5 +39,7 @@
 
 	extern void var_check_changes(struct breakpoint *bp, struct array *vars,
 		pid_t child, int depth);
+
+	extern void var_array_free(struct array *vars);
 
 #endif /* VARIABLE_H */

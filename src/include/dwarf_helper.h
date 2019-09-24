@@ -224,4 +224,8 @@
 
 	extern struct array *get_all_lines(struct dw_utils *dw);
 
+	extern void lines_dump(struct array *lines);
+
+	extern void lines_array_free(struct array *lines);
+
 #endif /* DWARF_UTILS_H */

@@ -193,3 +193,22 @@ void bp_skipbreakpoint(struct breakpoint *bp, pid_t child)
 	insn = (insn & ~0xFF) | BP_OPCODE;
 	pt_writememory64(child, bp->addr, insn);
 }
+
+/**
+ * @brief Deallocates all the breakpoints remaining.
+ *
+ * @param breakpoints Breakpoints list.
+ */
+void bp_array_free(struct array *breakpoints)
+{
+	int size;
+
+	size = (int) array_size(&breakpoints);
+	for (int i = 0; i < size; i++)
+	{
+		struct breakpoint *p;
+		p = array_remove(&breakpoints, 0, NULL);
+		free(p);
+	}
+	array_finish(&breakpoints);
+}

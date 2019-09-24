@@ -90,3 +90,15 @@ void fn_free_indent(char *buff)
 
 	free(buff);
 }
+
+/**
+ * @brief Deallocates the remaining variables and the
+ * last function context.
+ *
+ * @param f Function context.
+ */
+void fn_free(struct function *f)
+{
+	var_array_free(f->vars);
+	free(f);
+}

@@ -26,6 +26,21 @@
 #define FUNCTION_H
 
 	#include <stdio.h>
+	#include <inttypes.h>
+
+	#include "variable.h"
+
+	/**
+	 * @brief Current function context.
+	 */
+	struct function
+	{
+		/* All variables found. */
+		struct array *vars;
+
+		/* Return address. */
+		uint64_t return_addr;
+	};
 
 	/* Amount of spaces to indent. */
 	#define FUNCTION_INDENT_LEVEL 4
@@ -33,5 +48,7 @@
 	extern char *fn_get_indent(size_t depth);
 
 	extern void fn_free_indent(char *buff);
+
+	extern void fn_free(struct function *f);
 
 #endif /* BREAKPOINT_H */

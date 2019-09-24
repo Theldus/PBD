@@ -61,4 +61,6 @@
 	
 	extern void bp_skipbreakpoint(struct breakpoint *bp, pid_t child);
 
+	extern void bp_array_free(struct array *breakpoints);
+
 #endif /* BREAKPOINT_H */

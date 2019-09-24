@@ -940,3 +940,38 @@ struct array *get_all_lines(struct dw_utils *dw)
 
 	return (array_lines);
 }
+
+/**
+ * @brief Dump all lines found in the target function.
+ *
+ * @param lines Lines array.
+ */
+void lines_dump(struct array *lines)
+{
+	for (int i = 0; i < (int) array_size(&lines); i++)
+	{
+		struct dw_line *l;
+		l = array_get(&lines, i, NULL);
+		printf("line: %d / address: %" PRIx64 " / type: %d\n",
+			l->line_no, l->addr, l->line_type);
+	}
+}
+
+/**
+ * @brief Deallocates all the lines remaining.
+ *
+ * @param lines Lines list.
+ */
+void lines_array_free(struct array *lines)
+{
+	int size;
+
+	size = (int) array_size(&lines);
+	for (int i = 0; i < size; i++)
+	{
+		struct dw_lines *l;
+		l = array_remove(&lines, 0, NULL);
+		free(l);
+	}
+	array_finish(&lines);
+}

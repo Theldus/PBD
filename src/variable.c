@@ -40,6 +40,49 @@ static char before[BS];
 static char after[BS];
 
 /**
+ * @brief Dump all variables found in the target function.
+ *
+ * @param vars Variables array.
+ */
+void var_dump(struct array *vars)
+{
+	for (int i = 0; i < (int) array_size(&vars); i++)
+	{
+		struct dw_variable *v;
+		v = array_get(&vars, i, NULL);
+
+		printf("Variable found: %s\n", v->name);
+		printf("  Scope: %d\n", v->scope);
+
+		/* Location. */
+		if (v->scope == VLOCAL)
+			printf("  Location: %d\n", (int)v->location.fp_offset);
+		else
+			printf("  Location: %" PRIx64 "\n", v->location.address);
+
+		printf("  Size (bytes): %zu\n", v->byte_size);
+		printf("  Var type:     %d\n", v->type.var_type);
+		printf("  Var encoding: %d\n", v->type.encoding);
+
+		/* Check if array. */
+		if (v->type.array.dimensions > 0)
+		{
+			printf("  Array (%d dimensions) (size per element: %zu) (type: %d): \n",
+				v->type.array.dimensions, v->type.array.size_per_element,
+				v->type.array.var_type);
+
+			printf("    ");
+			for (int i = 0; i < v->type.array.dimensions; i++)
+				printf("[%d], ", v->type.array.elements_per_dimension[i]);
+
+			printf("\n");
+		}
+
+		printf("\n");
+	}
+}
+
+/**
  * @brief For a given value, buffer, encoding and size, prepares a
  * formatted string with its content. It's important to note, that
  * this function only formats TBASE_TYPEs.
@@ -515,4 +558,30 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			}
 		}
 	}
+}
+
+/**
+ * @brief Deallocates all the remaining variables in the
+ * last function context.
+ *
+ * @param vars Variables array.
+ */
+void var_array_free(struct array *vars)
+{
+	int size;
+
+	size = (int) array_size(&vars);
+	for (int i = 0; i < size; i++)
+	{
+		struct dw_variable *v;
+		v = array_remove(&vars, 0, NULL);
+
+		if (v->type.var_type == TARRAY)
+			if (v->value.p_value != NULL)
+				free(v->value.p_value);
+
+		free(v->name);
+		free(v);
+	}
+	array_finish(&vars);
 }
