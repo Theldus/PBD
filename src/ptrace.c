@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -44,7 +44,7 @@ int pt_spawnprocess(const char *file)
 		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 		execl(file, file, NULL);
 	}
-		
+
 	return (child);
 }
 
@@ -205,7 +205,7 @@ void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
  * @param child Child process.
  * @param addr Address to be read.
  * @param len How many bytes will be read.
- 
+
  * @return Returns a pointer containing the the memory read.
  *
  * @note Its up to the caller function to free the returned
@@ -213,12 +213,44 @@ void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
  */
 char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
 {
-	char *laddr;     /* Auxiliar pointer. */
 	char *data;      /* Return pointer.   */
+
+	/* Allocates enough room for the data to be read. */
+	if ((data = malloc(sizeof(char) * len)) == NULL)
+		return (NULL);
+
+	/*
+	 * Note: process_vm_readv() is only supported by GNU libc with
+	 * versions >= 2.15, moreover, this function is Linux-specific
+	 * and supported only on kernels >= 3.12 (2012-ish).
+	 *
+	 * So if we're not using GLIBC or the version is inferior, lets
+	 * use the tradional (and way slower) ptrace approach.
+	 */
+#if defined(__linux__) && defined(__GLIBC__) \
+	&& __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 15
+
+	struct iovec local[1];   /* IO Vector Local.  */
+	struct iovec remote[1];  /* IO Vector Remote. */
+
+	/* Prepare arguments for readv. */
+	local[0].iov_base  = data;
+	local[0].iov_len   = len;
+	remote[0].iov_base = (void *) addr;
+	remote[0].iov_len  = len;
+
+	if (process_vm_readv(child, local, 1, remote, 1, 0) != (ssize_t)len)
+		return (NULL);
+	else
+		return (data);
+
+/* Ptrace approach. */
+#else
+	char *laddr;     /* Auxiliar pointer. */
 	int i;           /* Address index.    */
 	int j;           /* Block counter.    */
 	int long_size;   /* Long size.        */
-	
+
 	long_size = sizeof(long);
 	union u
 	{
@@ -229,8 +261,7 @@ char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
 	i = 0;
 	j = len / long_size;
 
-	/* Allocates memory. */
-	data = malloc(sizeof(char) * len);
+	/* Assigns memory. */
 	laddr = data;
 
 	/* While there are 'blocks' remaining, keep reading. */
@@ -241,7 +272,7 @@ char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
 		i++;
 		laddr += long_size;
 	}
-	
+
 	/* If few bytes remaining, read them. */
 	j = len % long_size;
 	if (j != 0)
@@ -249,8 +280,9 @@ char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
 		temp_data.val = ptrace(PTRACE_PEEKDATA, child, addr + i * sizeof(void *), NULL);
 		memcpy(laddr, temp_data.chars, j);
 	}
-	
+
 	return (data);
+#endif
 }
 
 /**
@@ -268,14 +300,14 @@ void pt_writememory(pid_t child, uint64_t addr, char *data, size_t len)
 	int j;         /* Block counter.    */
 	char *laddr;   /* Auxiliar pointer. */
 	int long_size; /* Long size.        */
-	
+
 	long_size = sizeof(long);
 	union u
 	{
 		long val;
 		char chars[sizeof(long)];
 	} temp_data;
-	
+
 	i = 0;
 	j = len / long_size;
 	laddr = data;
