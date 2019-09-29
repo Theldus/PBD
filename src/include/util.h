@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -34,22 +34,36 @@
 	 * evaluates to 0.
 	 */
 	#define COMPILE_TIME_ASSERT(expr)  \
-    	switch(0){case 0:case expr:;}
+		switch(0){case 0:case expr:;}
+
+	/**
+	 * Aborts the execution with the appropriate context.
+	 */
+	#define QUIT(code, msg, ...) \
+		quit(code, __FILE__, __func__, __LINE__, msg, ##__VA_ARGS__);
 
 	/**
 	 * Quits with a return code and a formatted string.
 	 *
-	 * @param code Error code to be returned
+	 * @param code Error code to be returned.
+	 * @param file File name.
+	 * @param function Function name.
+	 * @param line Line number.
 	 * @param fmt Formatted string to be printed.
 	 */
-	static void quit(int code, const char* fmt, ...)
+	static void quit(int code, const char *file, const char *function,
+		int line, const char* fmt, ...)
 	{
 	    va_list args;
-	    
+
+	    /* Indentify the context. */
+	    fprintf(stderr, "[%s:%d] %s: ", file, line, function);
+
+	    /* Emmits error. */
 	    va_start(args, fmt);
 	    vfprintf(stderr, fmt, args);
 	    va_end(args);
-	    
+
 	    exit(code);
 	}
 

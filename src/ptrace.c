@@ -172,7 +172,7 @@ uint64_t pt_readmemory64(pid_t child, uint64_t addr)
 		return (data);
 	}
 	else
-		quit(-1, "pt_readmemory64: unexpected long size: %zu", sizeof(long));
+		QUIT(-1, "unexpected long size: %zu", sizeof(long));
 }
 
 /**
@@ -195,7 +195,7 @@ void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
 		ptrace(PTRACE_POKEDATA, child, addr + 4, ((data >> 32) & 0xFFFFFFFF));
 	}
 	else
-		quit(-1, "pt_writememory64: unexpected long size: %zu", sizeof(long));
+		QUIT(-1, "unexpected long size: %zu", sizeof(long));
 }
 
 /**

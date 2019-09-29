@@ -120,14 +120,14 @@ void do_analysis(const char *file, const char *function)
 
 	/* Tries to spawn the process. */
 	if ((child = pt_spawnprocess(file)) < 0)
-		quit(-1, "do_analysis: error while spawning the child process!\n");
+		QUIT(-1, "error while spawning the child process!\n");
 
 	/* Wait child and create the breakpoint list. */
 	pt_waitchild();
 	{
 		breakpoints = bp_createlist(lines, child);
 		if (bp_insertbreakpoints(breakpoints, child))
-			quit(-1, "do_analysis: error while inserting breakpoints!\n");
+			QUIT(-1, "error while inserting breakpoints!\n");
 	}
 
 	pt_continue_single_step(child);
