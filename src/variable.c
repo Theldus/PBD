@@ -372,7 +372,6 @@ void var_initialize(struct array *vars, pid_t child)
 void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, int depth)
 {
 	union var_value value;
-	char *indent_buff;
 
 	/* For each variable. */
 	for (int i = 0; i < (int) array_size(&vars); i++)
@@ -406,16 +405,14 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 					else
 						v->scratch_value.ld_value = 0.0;
 
-					printf("%s[Line: %d] [%s] (%s) initialized!, before: %s, after: %s\n",
-						(indent_buff = fn_get_indent(depth)),
+					fn_printf(depth,
+						"[Line: %d] [%s] (%s) initialized!, before: %s, after: %s\n",
 						b->line_no,
 						(v->scope == VGLOBAL) ? "global" : "local",
 						v->name,
 						var_format_value(before, &v->scratch_value, v->type.encoding, v->byte_size),
 						var_format_value(after,  &value, v->type.encoding, v->byte_size)
 					);
-
-					fn_free_indent(indent_buff);
 				}
 				continue;
 			}
@@ -423,16 +420,14 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			/* If the variable was already initialized, lets check normally. */
 			if (memcmp(&value.u64_value, &v->value.u64_value, v->byte_size))
 			{
-				printf("%s[Line: %d] [%s] (%s) has changed!, before: %s, after: %s\n",
-					(indent_buff = fn_get_indent(depth)),
+				fn_printf(depth,
+					"[Line: %d] [%s] (%s) has changed!, before: %s, after: %s\n",
 					b->line_no,
 					(v->scope == VGLOBAL) ? "global" : "local",
 					v->name,
 					var_format_value(before, &v->value, v->type.encoding, v->byte_size),
 					var_format_value(after,  &value, v->type.encoding, v->byte_size)
 				);
-
-				fn_free_indent(indent_buff);
 
 				v->value.u64_value[0] = value.u64_value[0];
 				v->value.u64_value[1] = value.u64_value[1];
@@ -483,8 +478,8 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 						/* If one dimension. */
 						if (v->type.array.dimensions == 1)
 						{
-							printf("%s[Line: %d] [%s] (%s[%zu]) has changed!, before: %s, after: %s\n",
-								(indent_buff = fn_get_indent(depth)),
+							fn_printf(depth,
+								"[Line: %d] [%s] (%s[%zu]) has changed!, before: %s, after: %s\n",
 								b->line_no,
 								(v->scope == VGLOBAL) ? "global" : "local",
 								v->name,
@@ -492,8 +487,6 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 								var_format_value(before, &value1, v->type.encoding, size_per_element),
 								var_format_value(after,  &value2, v->type.encoding, size_per_element)
 							);
-
-							fn_free_indent(indent_buff);
 						}
 
 						/* If multiple dimensions. */
@@ -517,8 +510,8 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 							}
 
 							/* Print indexes and values. */
-							printf("%s[Line: %d] [%s] (%s",
-								(indent_buff = fn_get_indent(depth)),
+							fn_printf(depth,
+								"[Line: %d] [%s] (%s",
 								b->line_no,
 								(v->scope == VGLOBAL) ? "global" : "local",
 								v->name
@@ -531,8 +524,6 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 								var_format_value(before, &value1, v->type.encoding, size_per_element),
 								var_format_value(after,  &value2, v->type.encoding, size_per_element)
 							);
-
-							fn_free_indent(indent_buff);
 						}
 					}
 

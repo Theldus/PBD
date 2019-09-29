@@ -47,6 +47,8 @@
 
 	extern char *fn_get_indent(size_t depth);
 
+	extern void fn_printf(size_t depth, const char* fmt, ...);
+
 	extern void fn_free_indent(char *buff);
 
 	extern void fn_free(struct function *f);

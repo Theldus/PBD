@@ -77,6 +77,33 @@ char *fn_get_indent(size_t depth)
 }
 
 /**
+ * @brief Prints a formatted string with already indentation.
+ *
+ * This function is recommended whenever a formatted print
+ * with indentation is required, since fn_printf() also
+ * deallocates the buffer provided by fn_get_indent().
+ *
+ * @param depth Function depth.
+ * @param fmt Formatted string to be printed.
+ */
+void fn_printf(size_t depth, const char* fmt, ...)
+{
+	char *buffer;
+    va_list args;
+
+    /* Indent level. */
+    fputs( (buffer = fn_get_indent(depth)), stdout );
+
+    /* Print formatted string. */
+    va_start(args, fmt);
+    vfprintf(stdout, fmt, args);
+    va_end(args);
+
+    /* Free buffer. */
+    fn_free_indent(buffer);
+}
+
+/**
  * @brief Free the memory alocated by the fn_get_indent()
  * regardless of what buffer was used.
  *

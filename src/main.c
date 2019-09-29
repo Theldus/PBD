@@ -139,7 +139,6 @@ void do_analysis(const char *file, const char *function)
 	/* Main loop. */
 	while (pt_waitchild() != PT_CHILD_EXIT)
 	{
-		char *indent_buff;
 		int current_depth;
 		uint64_t pc;
 		struct breakpoint *bp;
@@ -148,7 +147,6 @@ void do_analysis(const char *file, const char *function)
 		pc = pt_readregister_pc(child) - 1;
 		bp = bp_findbreakpoint(pc, breakpoints);
 		current_depth = array_size(&context);
-		indent_buff   = NULL;
 
 		/* If not valid breakpoint, continues. */
 		if (bp == NULL)
@@ -228,10 +226,8 @@ void do_analysis(const char *file, const char *function)
 		 */
 		if (pc == f->return_addr)
 		{
-			printf("%s[depth: %d] Returning to function...\n\n",
-				(indent_buff = fn_get_indent(current_depth)), current_depth);
-
-			fn_free_indent(indent_buff);
+			fn_printf(current_depth, "[depth: %d] Returning to function...\n\n",
+				current_depth);
 
 			/*
 			 * Since we're returning from an previous call, we also
@@ -280,10 +276,9 @@ void do_analysis(const char *file, const char *function)
 		 */
 		if (init_vars)
 		{
-			printf("\n%s[depth: %d] Entering function...\n",
-				(indent_buff = fn_get_indent(current_depth)), current_depth);
-
-			fn_free_indent(indent_buff);
+			putchar('\n');
+			fn_printf(current_depth, "[depth: %d] Entering function...\n",
+				current_depth);
 
 			init_vars = 0;
 			var_initialize(f->vars, child);
