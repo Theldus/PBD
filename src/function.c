@@ -23,8 +23,10 @@
  */
 
 #include "function.h"
+#include "variable.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 /* Static buffer for indent level. */
 static char fn_indent_buff[64 + 1] = {0};

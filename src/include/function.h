@@ -28,8 +28,6 @@
 	#include <stdio.h>
 	#include <inttypes.h>
 
-	#include "variable.h"
-
 	/**
 	 * @brief Current function context.
 	 */

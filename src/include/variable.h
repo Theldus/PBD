@@ -28,9 +28,13 @@
 	#include "array.h"
 	#include "dwarf_helper.h"
 	#include "breakpoint.h"
+	#include "function.h"
 	#include  <sys/types.h>
 
 	extern void var_dump(struct array *vars);
+
+	extern int var_new_context(struct function *prev_ctx,
+		struct function **curr_ctx, struct array *ctx_list);
 
 	extern int var_read(union var_value *value, struct dw_variable *v,
 		pid_t child);

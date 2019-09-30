@@ -166,6 +166,69 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 }
 
 /**
+ * @brief Allocates a new function context.
+ *
+ * Allocates a new function context by carefully duplicating
+ * and filling the variable structure.
+ *
+ * @param prev_ctx Previous context.
+ * @param curr_ctx Current context pointer.
+ * @param ctx_list Context list.
+ *
+ * @return Returns 0 if success.
+ */
+int var_new_context(
+	struct function *prev_ctx,
+	struct function **curr_ctx,
+	struct array *ctx_list)
+{
+	struct dw_variable *prev_v; /* Previous variable. */
+	struct dw_variable *v;      /* Current variable.  */
+	int size;                   /* Variable size.     */
+
+	size = (int) array_size(&prev_ctx->vars);
+
+	/* Allocates a new function context. */
+	*curr_ctx = calloc(1, sizeof(struct function));
+	array_init(&((*curr_ctx)->vars));
+
+	/*
+	 * Copies all the old variables into the new context.
+	 */
+	for (int i = 0; i < size; i++)
+	{
+		prev_v = array_get(&prev_ctx->vars, i, NULL);
+		v = calloc(1, sizeof(struct dw_variable));
+
+		/* Do a quick n' dirty shallow copy. */
+		memcpy(v, prev_v, sizeof(struct dw_variable));
+
+		/* Change the remaining important items:
+		 * - Name
+		 * - Value
+		 */
+		v->name = malloc(sizeof(char) * (strlen(prev_v->name) + 1));
+		strcpy(v->name, prev_v->name);
+
+		v->value.u64_value[0] = 0;
+		v->value.u64_value[1] = 0;
+
+		/* Add into array. */
+		array_add(&((*curr_ctx)->vars), v);
+	}
+
+	/*
+	 * Adds the new context into the context list.
+	 *
+	 * Note: Its important to note that the new context _is_ also
+	 * the current context from now on.
+	 */
+	array_add(&ctx_list, *curr_ctx);
+
+	return (0);
+}
+
+/**
  * @brief Reads the current variable value for a given variable.
  *
  * @param value Value union.

@@ -161,45 +161,14 @@ void do_analysis(const char *file, const char *function)
 		 */
 		if (pc == dw.dw_func.low_pc)
 		{
+			/* Allocates a new function context. */
 			if (current_depth > 0 && depth > 0)
 			{
-				struct dw_variable *prev_v, *v;
-				struct function *prev_f;
-				int size;
-
-				prev_f = array_get(&context, current_depth - 1, NULL);
-				size = (int) array_size(&prev_f->vars);
-
-				/* Allocates a new function context. */
-				f = calloc(1, sizeof(struct function));
-				array_init(&f->vars);
-
-				/*
-				 * Copies all the old variables into the new context.
-				 */
-				for (int i = 0; i < size; i++)
-				{
-					prev_v = array_get(&prev_f->vars, i, NULL);
-					v = calloc(1, sizeof(struct dw_variable));
-
-					/* Do a quick n' dirty shallow copy. */
-					memcpy(v, prev_v, sizeof(struct dw_variable));
-
-					/* Change the remaining important items:
-					 * - Name
-					 * - Value
-					 */
-					v->name = malloc(sizeof(char) * (strlen(prev_v->name) + 1));
-					strcpy(v->name, prev_v->name);
-
-					v->value.u64_value[0] = 0;
-					v->value.u64_value[1] = 0;
-
-					/* Add into array. */
-					array_add(&f->vars, v);
-				}
-
-				array_add(&context, f);
+				var_new_context(
+					array_get(&context, current_depth - 1, NULL),
+					&f,
+					context
+				);
 			}
 
 			/*
