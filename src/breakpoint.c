@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -34,13 +34,13 @@
  *
  * @return Returns a breakpoint list.
  */
-struct array *bp_createlist(struct array *lines, pid_t pid)
+struct hashtable *bp_createlist(struct array *lines, pid_t pid)
 {
-	struct array *breakpoints; /* Breakpoints list. */
-	struct breakpoint *bp;     /* Breakpoint.       */
+	struct hashtable *breakpoints; /* Breakpoints list. */
+	struct breakpoint *bp;         /* Breakpoint.       */
 
 	/* Initialize our list. */
-	array_init(&breakpoints);
+	hashtable_init(&breakpoints, NULL);
 
 	for (int i = 0; i < (int) array_size(&lines); i++)
 	{
@@ -49,15 +49,18 @@ struct array *bp_createlist(struct array *lines, pid_t pid)
 
 		if (l->line_type != LBEGIN_STMT)
 			continue;
-		
+
 		/* Allocates a new break point. */
 		bp = malloc(sizeof(struct breakpoint));
 		bp->addr = l->addr;
 		bp->original_byte = pt_readmemory64(pid, bp->addr) & 0xFF;
 		bp->line_no = l->line_no;
 
-		/* Add to our array. */
-		array_add(&breakpoints, bp);
+		/* Add to our hashmap. */
+		hashtable_add(&breakpoints, (void*)bp->addr, bp);
+
+		/* Insert breakpoint. */
+		bp_insertbreakpoint(bp, pid);
 	}
 
 	return (breakpoints);
@@ -70,7 +73,7 @@ struct array *bp_createlist(struct array *lines, pid_t pid)
  * @param bp Breakpoint list.
  * @param child Child process.
  */
-int bp_createbreakpoint(uint64_t addr, struct array *bp, pid_t child)
+int bp_createbreakpoint(uint64_t addr, struct hashtable *bp, pid_t child)
 {
 	struct breakpoint *b; /* Breakpoint. */
 
@@ -85,7 +88,7 @@ int bp_createbreakpoint(uint64_t addr, struct array *bp, pid_t child)
 	b->line_no = 0;
 
 	/* Add to our list. */
-	array_add(&bp, b);
+	hashtable_add(&bp, (void*)b->addr, b);
 
 	/* Insert breakpoint. */
 	bp_insertbreakpoint(b, child);
@@ -115,29 +118,6 @@ int bp_insertbreakpoint(struct breakpoint *bp, pid_t child)
 }
 
 /**
- * Insert breakpoints into the child process memory.
- * @param bp Breakpoints list.
- * @param child Child process.
- * @return ...
- */
-int bp_insertbreakpoints(struct array *bp, pid_t child)
-{
-	struct breakpoint *b; /* Current breakpoint. */
-
-	if (bp == NULL || array_size(&bp) <= 0)
-		return (-1);
-
-	for (int i = 0; i < (int) array_size(&bp); i++)
-	{
-		b = array_get(&bp, i, NULL);
-		if (bp_insertbreakpoint(b, child))
-			return (-1);
-	}
-
-	return (0);
-}
-
-/**
  * @brief By a given address @p addr, tries to find a breakpoint
  * into the breakpoint list @p bp_list.
  *
@@ -146,23 +126,13 @@ int bp_insertbreakpoints(struct array *bp, pid_t child)
  *
  * @return Returns the underlying breakpoint structure if found,
  * or NULL otherwise.
- *
- * @note TODO: Use hashtable instead of array, this function is
- * one of the bottlenecks.
  */
 struct breakpoint *bp_findbreakpoint(
-	uint64_t addr, struct array *bp_list)
+	uint64_t addr, struct hashtable *bp_list)
 {
 	struct breakpoint *b;
-
-	for (int i = 0; i < (int) array_size(&bp_list); i++)
-	{
-		b = array_get(&bp_list, i, NULL);
-		if (b->addr == addr)
-			return (b);
-	}
-
-	return (NULL);
+	b = hashtable_get(&bp_list, (void*)addr);
+	return (b);
 }
 
 /**
@@ -199,16 +169,7 @@ void bp_skipbreakpoint(struct breakpoint *bp, pid_t child)
  *
  * @param breakpoints Breakpoints list.
  */
-void bp_array_free(struct array *breakpoints)
+void bp_list_free(struct hashtable *breakpoints)
 {
-	int size;
-
-	size = (int) array_size(&breakpoints);
-	for (int i = 0; i < size; i++)
-	{
-		struct breakpoint *p;
-		p = array_remove(&breakpoints, 0, NULL);
-		free(p);
-	}
-	array_finish(&breakpoints);
+	hashtable_finish(&breakpoints, 1);
 }

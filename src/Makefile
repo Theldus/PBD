@@ -30,7 +30,7 @@ INCLUDE_DWARF = /usr/include/libdwarf/
 CFLAGS   = -Wall -Wextra
 CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF)
 CFLAGS  += -std=c99 -g
-LDFLAGS  = -ldwarf
+LDFLAGS  = -ldwarf -lm
 
 C_SRC = $(wildcard *.c)
 OBJ = $(C_SRC:.c=.o)

@@ -28,6 +28,7 @@
 #include "ptrace.h"
 #include "util.h"
 #include "variable.h"
+#include "hashtable.h"
 #include <inttypes.h>
 
 /* Depth, useful for recursive analysis. */
@@ -40,7 +41,7 @@ struct dw_utils dw;
 struct array *lines;
 
 /* Breakpoints. */
-struct array *breakpoints;
+struct hashtable *breakpoints;
 
 /* Function context. */
 static struct array *context;
@@ -95,7 +96,7 @@ void finish(void)
 	lines_array_free(lines);
 
 	/* Deallocate breakpoints. */
-	bp_array_free(breakpoints);
+	bp_list_free(breakpoints);
 }
 
 /**
@@ -122,12 +123,10 @@ void do_analysis(const char *file, const char *function)
 	if ((child = pt_spawnprocess(file)) < 0)
 		QUIT(-1, "error while spawning the child process!\n");
 
-	/* Wait child and create the breakpoint list. */
+	/* Wait child, create the breakpoint list and insert them. */
 	pt_waitchild();
 	{
 		breakpoints = bp_createlist(lines, child);
-		if (bp_insertbreakpoints(breakpoints, child))
-			QUIT(-1, "error while inserting breakpoints!\n");
 	}
 
 	pt_continue_single_step(child);
