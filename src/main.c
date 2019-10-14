@@ -201,30 +201,7 @@ void do_analysis(const char *file, const char *function)
 			 * Since we're returning from an previous call, we also
 			 * need to free all (possible) arrays allocated first.
 			 */
-			for (int i = 0; i < (int) array_size(&f->vars); i++)
-			{
-				struct dw_variable *v;
-				v = array_get(&f->vars, i, NULL);
-
-				if (v->type.var_type == TARRAY)
-				{
-					free(v->value.p_value);
-					v->value.p_value = NULL;
-				}
-
-				if (current_depth > 1)
-				{
-					free(v->name);
-					free(v);
-				}
-			}
-
-			/* Deallocates array and remove the last level. */
-			if (current_depth > 1)
-			{
-				array_finish(&f->vars);
-				free( array_remove_last(&context, NULL) );
-			}
+			var_deallocate_context(f->vars, context, current_depth);
 
 			/* Decrements the context and continues. */
 			depth--;

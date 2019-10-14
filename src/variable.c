@@ -229,6 +229,53 @@ int var_new_context(
 }
 
 /**
+ * @brief By a given variable, context and depth, deallocates
+ * all the variables and arrays for that context.
+ *
+ * @param vars Current variables list.
+ * @param context Context list.
+ * @param depth Current depth.
+ *
+ * @return Returns 0 if success and a negative number otherwise.
+ */
+int var_deallocate_context(
+	struct array *vars,
+	struct array *context,
+	int depth)
+{
+	/**
+	 * Deallocates each array and if depth is greater than 1,
+	 * also deallocates the var and its context.
+	 */
+	for (int i = 0; i < (int) array_size(&vars); i++)
+	{
+		struct dw_variable *v;
+		v = array_get(&vars, i, NULL);
+
+		if (v->type.var_type == TARRAY)
+		{
+			free(v->value.p_value);
+			v->value.p_value = NULL;
+		}
+
+		if (depth > 1)
+		{
+			free(v->name);
+			free(v);
+		}
+	}
+
+	/* Deallocates array and remove the last level. */
+	if (depth > 1)
+	{
+		array_finish(&vars);
+		free( array_remove_last(&context, NULL) );
+	}
+
+	return (0);
+}
+
+/**
  * @brief Reads the current variable value for a given variable.
  *
  * @param value Value union.
