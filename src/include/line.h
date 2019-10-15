@@ -22,34 +22,27 @@
  * SOFTWARE.
  */
 
-#ifndef VARIABLE_H
-#define VARIABLE_H
+#ifndef LINE_H
+#define LINE_H
 
-	#include "array.h"
 	#include "dwarf_helper.h"
-	#include "breakpoint.h"
-	#include "function.h"
-	#include  <sys/types.h>
+	#include "variable.h"
+	#include <stdio.h>
 
-	extern void var_dump(struct array *vars);
+	/* Output buffer size. */
+	#define BS 64
 
-	extern char *var_format_value(char *buffer, union var_value *v,
-		int encoding, size_t byte_size);
+	void (*line_output)(
+		int depth, unsigned line_no,
+		struct dw_variable *v, union var_value *v_before,
+		union var_value *v_after, int *array_idxs);
 
-	extern int var_new_context(struct function *prev_ctx,
-		struct function **curr_ctx, struct array *ctx_list);
+	extern void line_null_printer(int depth, unsigned line_no,
+		struct dw_variable *v, union var_value *v_before,
+		union var_value *v_after, int *array_idxs);
 
-	extern int var_deallocate_context(struct array *vars,
-		struct array *context, int depth);
+	extern void line_default_printer(int depth, unsigned line_no,
+		struct dw_variable *v, union var_value *v_before,
+		union var_value *v_after, int *array_idxs);
 
-	extern int var_read(union var_value *value, struct dw_variable *v,
-		pid_t child);
-
-	extern void var_initialize(struct array *vars, pid_t child);
-
-	extern void var_check_changes(struct breakpoint *bp, struct array *vars,
-		pid_t child, int depth);
-
-	extern void var_array_free(struct array *vars);
-
-#endif /* VARIABLE_H */
+#endif /* LINE_H */

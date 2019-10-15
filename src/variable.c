@@ -27,17 +27,7 @@
 #include "dwarf_helper.h"
 #include "ptrace.h"
 #include "function.h"
-
-/*
- * Buffer
- *
- * This buffer holds the value from before and
- * after the value is changed for a single
- * TBASE_TYPE.
- */
-#define BS 64
-static char before[BS];
-static char after[BS];
+#include "line.h"
 
 /**
  * @brief Dump all variables found in the target function.
@@ -481,7 +471,8 @@ void var_initialize(struct array *vars, pid_t child)
  */
 void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, int depth)
 {
-	union var_value value;
+	union var_value value;                                /* Variable value.      */
+	int index_per_dimension[MATRIX_MAX_DIMENSIONS] = {0}; /* Index per dimension. */
 
 	/* For each variable. */
 	for (int i = 0; i < (int) array_size(&vars); i++)
@@ -505,7 +496,6 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 				{
 					v->value.u64_value[0] = value.u64_value[0];
 					v->value.u64_value[1] = value.u64_value[1];
-					v->initialized = 1;
 
 					if (v->type.encoding != DW_ATE_float)
 					{
@@ -515,14 +505,9 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 					else
 						v->scratch_value.ld_value = 0.0;
 
-					fn_printf(depth,
-						"[Line: %d] [%s] (%s) initialized!, before: %s, after: %s\n",
-						b->line_no,
-						(v->scope == VGLOBAL) ? "global" : "local",
-						v->name,
-						var_format_value(before, &v->scratch_value, v->type.encoding, v->byte_size),
-						var_format_value(after,  &value, v->type.encoding, v->byte_size)
-					);
+					/* Output changes using the current printer. */
+					line_output(depth, b->line_no, v, &v->scratch_value, &value, NULL);
+					v->initialized = 1;
 				}
 				continue;
 			}
@@ -530,14 +515,8 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			/* If the variable was already initialized, lets check normally. */
 			if (memcmp(&value.u64_value, &v->value.u64_value, v->byte_size))
 			{
-				fn_printf(depth,
-					"[Line: %d] [%s] (%s) has changed!, before: %s, after: %s\n",
-					b->line_no,
-					(v->scope == VGLOBAL) ? "global" : "local",
-					v->name,
-					var_format_value(before, &v->value, v->type.encoding, v->byte_size),
-					var_format_value(after,  &value, v->type.encoding, v->byte_size)
-				);
+				/* Output changes using the current printer. */
+				line_output(depth, b->line_no, v, &v->value, &value, NULL);
 
 				v->value.u64_value[0] = value.u64_value[0];
 				v->value.u64_value[1] = value.u64_value[1];
@@ -555,10 +534,10 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			 */
 			if (v->type.array.var_type == TBASE_TYPE)
 			{
-				int changed;
-				char *v1;
-				char *v2;
-				size_t size_per_element;
+				int changed;             /* Variable status.  */
+				char *v1;                /* Variable old.     */
+				char *v2;                /* Variable new.     */
+				size_t size_per_element; /* Size per element. */
 
 				/* Read and compares its value. */
 				var_read(&value, v, child);
@@ -588,22 +567,17 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 						/* If one dimension. */
 						if (v->type.array.dimensions == 1)
 						{
-							fn_printf(depth,
-								"[Line: %d] [%s] (%s[%zu]) has changed!, before: %s, after: %s\n",
-								b->line_no,
-								(v->scope == VGLOBAL) ? "global" : "local",
-								v->name,
-								i / size_per_element,
-								var_format_value(before, &value1, v->type.encoding, size_per_element),
-								var_format_value(after,  &value2, v->type.encoding, size_per_element)
-							);
+							index_per_dimension[0] = i / size_per_element;
+
+							/* Output changes using the current printer. */
+							line_output(depth, b->line_no, v, &value1, &value2,
+								index_per_dimension);
 						}
 
 						/* If multiple dimensions. */
 						else
 						{
 							int div;
-							int index_per_dimension[MATRIX_MAX_DIMENSIONS] = {0};
 							int idx_dim;
 
 							div = i / size_per_element;
@@ -619,21 +593,9 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 								idx_dim--;
 							}
 
-							/* Print indexes and values. */
-							fn_printf(depth,
-								"[Line: %d] [%s] (%s",
-								b->line_no,
-								(v->scope == VGLOBAL) ? "global" : "local",
-								v->name
-							);
-
-							for (int j = 0; j < v->type.array.dimensions; j++)
-								printf("[%d]", index_per_dimension[j]);
-
-							printf(") has changed!, before: %s, after: %s\n",
-								var_format_value(before, &value1, v->type.encoding, size_per_element),
-								var_format_value(after,  &value2, v->type.encoding, size_per_element)
-							);
+							/* Output changes using the current printer. */
+							line_output(depth, b->line_no, v, &value1, &value2,
+								index_per_dimension);
 						}
 					}
 
