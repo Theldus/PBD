@@ -46,6 +46,9 @@ struct hashtable *breakpoints;
 /* Function context. */
 static struct array *context;
 
+/* Debugged file name. */
+static char *filename;
+
 /**
  * @brief Parses all the lines and variables for the target
  * file and function.
@@ -61,16 +64,17 @@ int setup(const char *file, const char *function)
 	dw_init(file, &dw);
 
 	/* Searches for the target function */
-	get_address_by_function(&dw, function);
+	dw_get_address_by_function(&dw, function);
 
 	/* Initialize first function context. */
 	array_init(&context);
 		f = calloc(1, sizeof(struct function));
 	array_add(&context, f);
 
-	/* Parses all variables and lines. */
-	f->vars = get_all_variables(&dw);
-	lines = get_all_lines(&dw);
+	/* Parses all variables, lines and filename. */
+	f->vars  = dw_get_all_variables(&dw);
+	lines    = dw_get_all_lines(&dw);
+	filename = dw_get_source_file(&dw);
 	depth = 0;
 
 	/*
@@ -92,8 +96,9 @@ void finish(void)
 	/* Deallocate context. */
 	array_finish(&context);
 
-	/* Deallocate lines. */
-	lines_array_free(lines);
+	/* Deallocate lines and filename. */
+	dw_lines_array_free(lines);
+	free(filename);
 
 	/* Deallocate breakpoints. */
 	bp_list_free(breakpoints);

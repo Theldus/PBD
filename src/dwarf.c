@@ -556,7 +556,7 @@ dealloc:
  * have functions of the same name in different Compile
  * Units.
  */
-int get_address_by_function
+int dw_get_address_by_function
 (
 	struct dw_utils *dw,
 	const char *func
@@ -670,7 +670,7 @@ int get_address_by_function
  * @return Returns 0 if success and a negative number
  * otherwise.
  */
-int get_base_pointer_offset(struct dw_utils *dw)
+static int dw_get_base_pointer_offset(struct dw_utils *dw)
 {
 	Dwarf_Error error;      /* Error code.              */
 	Dwarf_Attribute attr;   /* Attribute.               */
@@ -768,7 +768,7 @@ err0:
  * @return If success, returns an array containing
  * all the variables found, otherwise, returns NULL.
  */
-struct array *get_all_variables(struct dw_utils *dw)
+struct array *dw_get_all_variables(struct dw_utils *dw)
 {
 	Dwarf_Die die;             /* Current CU.      */
 	Dwarf_Die child0, child1;  /* Siblings.        */
@@ -792,7 +792,7 @@ struct array *get_all_variables(struct dw_utils *dw)
 	 * DW_AT_frame_base from the subprogram present in
 	 * dw->fn_die.
 	 */
-	get_base_pointer_offset(dw);
+	dw_get_base_pointer_offset(dw);
 
 	/*
 	 * Loop through all compile units and searchs
@@ -873,7 +873,7 @@ struct array *get_all_variables(struct dw_utils *dw)
  * @return Returns an array of lines, contaning the address,
  * line type and line number for each entry.
  */
-struct array *get_all_lines(struct dw_utils *dw)
+struct array *dw_get_all_lines(struct dw_utils *dw)
 {
 	Dwarf_Line *lines;         /* Lines.                  */
 	Dwarf_Signed nlines;       /* Amount of lines per CU. */
@@ -942,11 +942,68 @@ struct array *get_all_lines(struct dw_utils *dw)
 }
 
 /**
+ * @brief Gets the complete qualified path for the source file
+ * belonging to the current Compile Unit.
+ *
+ * @param dw Dwarf Utils Structure Pointer.
+ *
+ * @return Returns a string containing the complete qualified
+ * path for the debugged Compile Unit.
+ *
+ * @note This does not guarantee that the path *will* exist
+ * in the filesystem while debugging, this should be checked.
+ */
+char *dw_get_source_file(struct dw_utils *dw)
+{
+	char *comp_dir;        /* Compile dir.       */
+	char *file;            /* CU file.           */
+	char *filename;        /* Complete filename. */
+	Dwarf_Error error;     /* Error code.        */
+	Dwarf_Bool battr;      /* Boolean.           */
+	Dwarf_Attribute attr;  /* Attribute.         */
+
+	/* Invalid Compile Unit. */
+	if (!dw->cu_die)
+		QUIT(-1, "Compile Unit not found!\n");
+
+	filename = NULL;
+
+	/* Get file name. */
+	if (dwarf_diename(dw->cu_die, &file, &error) == DW_DLV_OK)
+	{
+		/* Get compile directory. */
+		if (!dwarf_hasattr(dw->cu_die, DW_AT_comp_dir, &battr, &error) && battr)
+		{
+			if (dwarf_attr(dw->cu_die, DW_AT_comp_dir, &attr, &error))
+				goto out1;
+			if (dwarf_formstring(attr, &comp_dir, &error))
+				goto out1;
+
+			/* Room enough for filename ;-). */
+			filename = malloc(sizeof(char)*(strlen(comp_dir)+strlen(file)+2));
+			strcpy(filename, comp_dir);
+			strcat(filename, "/");
+			strcat(filename, file);
+		}
+		else
+			goto out1;
+	}
+	else
+		goto out0;
+
+	dwarf_dealloc(dw->dbg, comp_dir, DW_DLA_STRING);
+out1:
+	dwarf_dealloc(dw->dbg, file, DW_DLA_STRING);
+out0:
+	return (filename);
+}
+
+/**
  * @brief Dump all lines found in the target function.
  *
  * @param lines Lines array.
  */
-void lines_dump(struct array *lines)
+void dw_lines_dump(struct array *lines)
 {
 	for (int i = 0; i < (int) array_size(&lines); i++)
 	{
@@ -962,7 +1019,7 @@ void lines_dump(struct array *lines)
  *
  * @param lines Lines list.
  */
-void lines_array_free(struct array *lines)
+void dw_lines_array_free(struct array *lines)
 {
 	int size;
 

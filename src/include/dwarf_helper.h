@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,7 +39,7 @@
 	#include <libdwarf.h>
 
 	#include "array.h"
-	
+
 	/* Variables. */
 	enum VAR_SCOPE {VLOCAL, VGLOBAL};
 	enum VAR_TYPE {TBASE_TYPE, TARRAY, TSTRUCTURE, TUNION, TENUM, TPOINTER};
@@ -213,19 +213,21 @@
 	};
 
 	extern int *dw_init(const char *file, struct dw_utils *dw);
-	
+
 	extern void dw_finish(struct dw_utils *dw);
-	
+
 	extern int dw_next_cu_die(struct dw_utils *dw, Dwarf_Die *die);
-	
-	extern int get_address_by_function(struct dw_utils *dw, const char *func);
 
-	extern struct array *get_all_variables(struct dw_utils *dw);
+	extern int dw_get_address_by_function(struct dw_utils *dw, const char *func);
 
-	extern struct array *get_all_lines(struct dw_utils *dw);
+	extern struct array *dw_get_all_variables(struct dw_utils *dw);
 
-	extern void lines_dump(struct array *lines);
+	extern struct array *dw_get_all_lines(struct dw_utils *dw);
 
-	extern void lines_array_free(struct array *lines);
+	extern char *dw_get_source_file(struct dw_utils *dw);
+
+	extern void dw_lines_dump(struct array *lines);
+
+	extern void dw_lines_array_free(struct array *lines);
 
 #endif /* DWARF_UTILS_H */
