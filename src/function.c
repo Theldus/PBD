@@ -86,23 +86,31 @@ char *fn_get_indent(size_t depth)
  * deallocates the buffer provided by fn_get_indent().
  *
  * @param depth Function depth.
+ * @param extra_space Extra space if needed.
  * @param fmt Formatted string to be printed.
+ *
+ * @return Returns the number of characters printed from
+ * the formatted string.
  */
-void fn_printf(size_t depth, const char* fmt, ...)
+int fn_printf(size_t depth, int extra_space, const char* fmt, ...)
 {
-	char *buffer;
-    va_list args;
+	char *buffer; /* Buffer. */
+	va_list args; /* Arguments. */
 
-    /* Indent level. */
-    fputs( (buffer = fn_get_indent(depth)), stdout );
+	/* Indent level. */
+	fputs( (buffer = fn_get_indent(depth)), stdout );
 
-    /* Print formatted string. */
-    va_start(args, fmt);
-    vfprintf(stdout, fmt, args);
-    va_end(args);
+	/* Extra space. */
+	fprintf(stdout, "%*s", extra_space, "");
 
-    /* Free buffer. */
-    fn_free_indent(buffer);
+	/* Print formatted string. */
+	va_start(args, fmt);
+	vfprintf(stdout, fmt, args);
+	va_end(args);
+
+	/* Free buffer. */
+	fn_free_indent(buffer);
+	return (0);
 }
 
 /**

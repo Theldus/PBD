@@ -25,6 +25,13 @@
 #ifndef LINE_H
 #define LINE_H
 
+	#define _POSIX_C_SOURCE 200809L
+	#define _XOPEN_SOURCE 700
+
+	#if defined(__GLIBC__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 10
+		#define _GNU_SOURCE
+	#endif
+
 	#include "dwarf_helper.h"
 	#include "variable.h"
 	#include <stdio.h>
@@ -37,11 +44,19 @@
 		struct dw_variable *v, union var_value *v_before,
 		union var_value *v_after, int *array_idxs);
 
+	extern int line_read_source(const char *filename);
+
+	extern void line_free_source(void);
+
 	extern void line_null_printer(int depth, unsigned line_no,
 		struct dw_variable *v, union var_value *v_before,
 		union var_value *v_after, int *array_idxs);
 
 	extern void line_default_printer(int depth, unsigned line_no,
+		struct dw_variable *v, union var_value *v_before,
+		union var_value *v_after, int *array_idxs);
+
+	extern void line_detailed_printer(int depth, unsigned line_no,
 		struct dw_variable *v, union var_value *v_before,
 		union var_value *v_after, int *array_idxs);
 

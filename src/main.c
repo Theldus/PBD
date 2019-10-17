@@ -29,6 +29,7 @@
 #include "util.h"
 #include "variable.h"
 #include "hashtable.h"
+#include "line.h"
 #include <inttypes.h>
 
 /* Depth, useful for recursive analysis. */
@@ -75,6 +76,9 @@ int setup(const char *file, const char *function)
 	f->vars  = dw_get_all_variables(&dw);
 	lines    = dw_get_all_lines(&dw);
 	filename = dw_get_source_file(&dw);
+
+	line_read_source(filename);
+
 	depth = 0;
 
 	/*
@@ -98,6 +102,7 @@ void finish(void)
 
 	/* Deallocate lines and filename. */
 	dw_lines_array_free(lines);
+	line_free_source();
 	free(filename);
 
 	/* Deallocate breakpoints. */
@@ -199,7 +204,7 @@ void do_analysis(const char *file, const char *function)
 		 */
 		if (pc == f->return_addr)
 		{
-			fn_printf(current_depth, "[depth: %d] Returning to function...\n\n",
+			fn_printf(current_depth, 0, "[depth: %d] Returning to function...\n\n",
 				current_depth);
 
 			/*
@@ -227,7 +232,7 @@ void do_analysis(const char *file, const char *function)
 		if (init_vars)
 		{
 			putchar('\n');
-			fn_printf(current_depth, "[depth: %d] Entering function...\n",
+			fn_printf(current_depth, 0, "[depth: %d] Entering function...\n",
 				current_depth);
 
 			init_vars = 0;
