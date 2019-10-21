@@ -1009,7 +1009,7 @@ void dw_lines_dump(struct array *lines)
 	{
 		struct dw_line *l;
 		l = array_get(&lines, i, NULL);
-		printf("line: %d / address: %" PRIx64 " / type: %d\n",
+		printf("    line: %03d / address: %" PRIx64 " / type: %d\n",
 			l->line_no, l->addr, l->line_type);
 	}
 }

@@ -30,6 +30,11 @@
 #include "variable.h"
 #include "hashtable.h"
 #include "line.h"
+
+#define OPTPARSE_IMPLEMENTATION
+#include "optparse.h"
+
+#include "pbd.h"
 #include <inttypes.h>
 
 /* Depth, useful for recursive analysis. */
@@ -49,6 +54,9 @@ static struct array *context;
 
 /* Debugged file name. */
 static char *filename;
+
+/* Arguments list. */
+struct args args = {0};
 
 /**
  * @brief Parses all the lines and variables for the target
@@ -77,7 +85,17 @@ int setup(const char *file, const char *function)
 	lines    = dw_get_all_lines(&dw);
 	filename = dw_get_source_file(&dw);
 
-	line_read_source(filename);
+	/* Should we read the source?. */
+	if (args.flags & FLG_SHOW_LINES)
+	{
+		if (line_read_source(filename))
+		{
+			fprintf(stderr, "PBD: Source code %s not found, please check if the file "
+				"exists in your system!\n", filename);
+			exit(EXIT_FAILURE);
+		}
+		line_output = line_detailed_printer;
+	}
 
 	depth = 0;
 
@@ -142,6 +160,10 @@ void do_analysis(const char *file, const char *function)
 	pt_continue_single_step(child);
 	init_vars = 0;
 	prev_bp = NULL;
+
+	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
+		RLSE_VERSION);
+	printf("---------------------------------------\n");
 
 	printf("Debugging function %s:\n", function);
 
@@ -257,11 +279,158 @@ void do_analysis(const char *file, const char *function)
 }
 
 /**
+ * @brief Dumps all information gathered by the executable.
+ *
+ * @param prg_name PBD argument name.
+ */
+static void dump_all(const char *prg_name)
+{
+	pid_t child; /* Child process pid. */
+
+	/* Executable and function name should always be passed as parameters! */
+	if (args.executable == NULL || args.function == NULL)
+	{
+		printf("%s: executable and/or function name not found!\n\n", prg_name);
+		usage(EXIT_FAILURE, prg_name);
+	}
+
+	/* Setup and spawns cihld. */
+	setup(args.executable, args.function);
+	if ((child = pt_spawnprocess(args.executable)) < 0)
+		QUIT(-1, "error while spawning the child process!\n");
+
+	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
+		RLSE_VERSION);
+	printf("---------------------------------------\n");
+
+	/* File name. */
+	printf("Filename: %s\n", filename);
+
+	/* Dump vars. */
+	printf("\nVariables:\n");
+	var_dump( ((struct function *)array_get(&context, 0, NULL))->vars );
+
+	/* Dump lines. */
+	printf("Lines:\n");
+	dw_lines_dump(lines);
+
+	/* Break point list. */
+	printf("\nBreakpoint list:\n");
+	for (int i = 0; i < (int) array_size(&lines); i++)
+	{
+		struct dw_line *l;
+		l = array_get(&lines, i, NULL);
+
+		if (l->line_type != LBEGIN_STMT)
+			continue;
+
+		printf("    Breakpoint #%03d, line: %03d / addr: %" PRIx64" / orig_byte: %" PRIx64"\n",
+			i, l->line_no, l->addr, (pt_readmemory64(child, l->addr) & 0xFF));
+	}
+
+	finish();
+	exit(EXIT_SUCCESS);
+}
+
+/**
+ * @brief Program usage.
+ *
+ * @param retcode Return code.
+ * @param prg_name Program name.
+ */
+void usage(int retcode, const char *prg_name)
+{
+	printf("Usage: %s [options] executable function_name\n", prg_name);
+	printf("Options:\n");
+	printf("  -h --help        Display this information\n");
+	printf("  -v --version     Display the PBD version\n");
+	printf("  -l --show-lines  Shows the debugged source code portion in the output\n");
+
+	printf("\n\nThe following options are for PBD internals:\n");
+	printf("  -d --dump-all    Dump all information gathered by the executable\n");
+	exit(retcode);
+}
+
+/**
+ * Program version.
+ */
+static void version(void)
+{
+	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
+		RLSE_VERSION);
+	printf("MIT License - Copyright (C) 2019 Davidson Francis\n");
+	exit(EXIT_SUCCESS);
+}
+
+/**
+ * Parses the command-line arguments.
+ *
+ * @param argc Argument counter.
+ * @param argv Argument list.
+ */
+static void readargs(int argc, char **argv)
+{
+	int option;              /* Current option.   */
+	struct optparse options; /* Optparse options. */
+
+	((void)argc);
+
+	/* Current arguments list. */
+	struct optparse_long longopts[] = {
+		{"version",    'v', OPTPARSE_NONE},
+		{"help",       'h', OPTPARSE_NONE},
+		{"show-lines", 'l', OPTPARSE_NONE},
+		{"dump-all",   'd', OPTPARSE_NONE},
+		{0}
+	};
+
+	optparse_init(&options, argv);
+	while ((option = optparse_long(&options, longopts, NULL)) != -1)
+	{
+		switch (option)
+		{
+			case 'v':
+				version();
+				break;
+			case 'h':
+				usage(EXIT_SUCCESS, argv[0]);
+				break;
+			case 'l':
+				args.flags |= FLG_SHOW_LINES;
+				break;
+			case 'd':
+				args.flags |= FLG_DUMP_ALL;
+				break;
+			case '?':
+				fprintf(stderr, "%s: %s\n\n", argv[0], options.errmsg);
+				usage(EXIT_FAILURE, argv[0]);
+		}
+	}
+
+	/* Print remaining arguments. */
+	args.executable = optparse_arg(&options);
+	args.function = optparse_arg(&options);
+
+	if (args.flags & FLG_DUMP_ALL)
+		dump_all(argv[0]);
+}
+
+/**
  * Entry point.
  */
 int main(int argc, char **argv)
 {
-	do_analysis(argv[1], argv[2]);
+	/* Read arguments. */
+	readargs(argc, argv);
 
+	/* Ensure we have the minimal necessary. */
+	if (args.executable == NULL || args.function == NULL)
+	{
+		printf("%s: executable and/or function name not found!\n\n", argv[0]);
+		usage(EXIT_FAILURE, argv[0]);
+	}
+
+	/* Analyze. */
+	do_analysis(args.executable, args.function);
 	return (0);
 }
