@@ -24,6 +24,7 @@
 
 #include "dwarf_helper.h"
 #include "util.h"
+#include "pbd.h"
 #include <inttypes.h>
 #include <limits.h>
 
@@ -794,18 +795,58 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 	 */
 	dw_get_base_pointer_offset(dw);
 
-	/*
-	 * Loop through all compile units and searchs
-	 * for all global variables.
-	 */
-	while (dw_next_cu_die(dw, &die) > 0)
+	/* If globals enabled. */
+	if (args.flags & FLG_ONLY_GLOBALS)
 	{
-		if (dwarf_child(die, &child1, &error) != DW_DLV_OK)
-			continue;
+		/*
+		 * Loop through all compile units and searchs
+		 * for all global variables.
+		 */
+		while (dw_next_cu_die(dw, &die) > 0)
+		{
+			if (dwarf_child(die, &child1, &error) != DW_DLV_OK)
+				continue;
 
+			child0 = NULL;
+
+			/* Loop through all the siblings. */
+			do
+			{
+				if (child0 != NULL)
+					dwarf_dealloc(dw->dbg, child0, DW_DLA_DIE);
+
+				child0 = child1;
+
+				if (dwarf_tag(child1, &tag, &error) != DW_DLV_OK)
+				    QUIT(-1, "Error in dwarf_tag\n");
+
+				/* Only interested in global variables DIEs here */
+				if (tag != DW_TAG_variable)
+					continue;
+
+				var = dw_parse_variable(&child1, dw);
+				if (var)
+					array_add(&vars, var);
+
+			} while (dwarf_siblingof(dw->dbg, child0, &child1, &error) == DW_DLV_OK);
+
+			dwarf_dealloc(dw->dbg, die, DW_DLA_DIE);
+			dwarf_dealloc(dw->dbg, child1, DW_DLA_DIE);
+		}
+	}
+
+	/* If locals enabled. */
+	if (args.flags & FLG_ONLY_LOCALS)
+	{
+		/*
+		 * Loop through all the subprogram childs and get
+		 * the local variables.
+		 */
 		child0 = NULL;
 
-		/* Loop through all the siblings. */
+		if (dwarf_child(dw->fn_die, &child1, &error) != DW_DLV_OK)
+			QUIT(-1, "subprogram not found\n");
+
 		do
 		{
 			if (child0 != NULL)
@@ -814,10 +855,10 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 			child0 = child1;
 
 			if (dwarf_tag(child1, &tag, &error) != DW_DLV_OK)
-		        QUIT(-1, "Error in dwarf_tag\n");
+			    QUIT(-1, "Error in dwarf_tag\n");
 
-			/* Only interested in global variables DIEs here */
-			if (tag != DW_TAG_variable)
+			/* Only interested in local variables DIEs here */
+			if (tag != DW_TAG_variable && tag != DW_TAG_formal_parameter)
 				continue;
 
 			var = dw_parse_variable(&child1, dw);
@@ -826,40 +867,9 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 
 		} while (dwarf_siblingof(dw->dbg, child0, &child1, &error) == DW_DLV_OK);
 
-		dwarf_dealloc(dw->dbg, die, DW_DLA_DIE);
 		dwarf_dealloc(dw->dbg, child1, DW_DLA_DIE);
 	}
 
-	/**
-	 * Loop through all the subprogram childs and get
-	 * the local variables.
-	 */
-	child0 = NULL;
-
-	if (dwarf_child(dw->fn_die, &child1, &error) != DW_DLV_OK)
-		QUIT(-1, "subprogram not found\n");
-
-	do
-	{
-		if (child0 != NULL)
-			dwarf_dealloc(dw->dbg, child0, DW_DLA_DIE);
-
-		child0 = child1;
-
-		if (dwarf_tag(child1, &tag, &error) != DW_DLV_OK)
-	        QUIT(-1, "Error in dwarf_tag\n");
-
-		/* Only interested in local variables DIEs here */
-		if (tag != DW_TAG_variable && tag != DW_TAG_formal_parameter)
-			continue;
-
-		var = dw_parse_variable(&child1, dw);
-		if (var)
-			array_add(&vars, var);
-
-	} while (dwarf_siblingof(dw->dbg, child0, &child1, &error) == DW_DLV_OK);
-
-	dwarf_dealloc(dw->dbg, child1, DW_DLA_DIE);
 	return (vars);
 }
 

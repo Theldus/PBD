@@ -342,9 +342,11 @@ void usage(int retcode, const char *prg_name)
 {
 	printf("Usage: %s [options] executable function_name\n", prg_name);
 	printf("Options:\n");
-	printf("  -h --help        Display this information\n");
-	printf("  -v --version     Display the PBD version\n");
-	printf("  -l --show-lines  Shows the debugged source code portion in the output\n");
+	printf("  -h --help         Display this information\n");
+	printf("  -v --version      Display the PBD version\n");
+	printf("  -s --show-lines   Shows the debugged source code portion in the output\n");
+	printf("  -g --only-globals Monitors only global variables (default: global + local)\n");
+	printf("  -l --only-locals  Monitors only local variables (default: global + local)\n");
 
 	printf("\n\nThe following options are for PBD internals:\n");
 	printf("  -d --dump-all    Dump all information gathered by the executable\n");
@@ -377,10 +379,12 @@ static void readargs(int argc, char **argv)
 
 	/* Current arguments list. */
 	struct optparse_long longopts[] = {
-		{"version",    'v', OPTPARSE_NONE},
-		{"help",       'h', OPTPARSE_NONE},
-		{"show-lines", 'l', OPTPARSE_NONE},
-		{"dump-all",   'd', OPTPARSE_NONE},
+		{"version",      'v', OPTPARSE_NONE},
+		{"help",         'h', OPTPARSE_NONE},
+		{"show-lines",   's', OPTPARSE_NONE},
+		{"only-globals", 'g', OPTPARSE_NONE},
+		{"only-locals",  'l', OPTPARSE_NONE},
+		{"dump-all",     'd', OPTPARSE_NONE},
 		{0}
 	};
 
@@ -395,8 +399,14 @@ static void readargs(int argc, char **argv)
 			case 'h':
 				usage(EXIT_SUCCESS, argv[0]);
 				break;
-			case 'l':
+			case 's':
 				args.flags |= FLG_SHOW_LINES;
+				break;
+			case 'l':
+				args.flags |= FLG_ONLY_LOCALS;
+				break;
+			case 'g':
+				args.flags |= FLG_ONLY_GLOBALS;
 				break;
 			case 'd':
 				args.flags |= FLG_DUMP_ALL;
@@ -410,6 +420,10 @@ static void readargs(int argc, char **argv)
 	/* Print remaining arguments. */
 	args.executable = optparse_arg(&options);
 	args.function = optparse_arg(&options);
+
+	/* If no one variable options set, set all. */
+	if ( !(args.flags & (FLG_ONLY_GLOBALS|FLG_ONLY_LOCALS)) )
+		args.flags |= FLG_ONLY_GLOBALS|FLG_ONLY_LOCALS;
 
 	if (args.flags & FLG_DUMP_ALL)
 		dump_all(argv[0]);

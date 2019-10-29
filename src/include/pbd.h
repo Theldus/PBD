@@ -46,6 +46,7 @@
 		char *function;
 	};
 
+	extern struct args args;
 	extern void usage(int retcode, const char *prg_name);
 
 #endif /* PDB_H */
