@@ -25,6 +25,7 @@
 #include "hashtable.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <math.h>
 
 /**
@@ -316,6 +317,68 @@ void* hashtable_get(struct hashtable **ht, void *key)
 int hashtable_cmp_ptr(const void *key1, const void *key2)
 {
 	return ( (int)( ((uintptr_t)key1) - ((uintptr_t)key2) ) );
+}
+
+/**
+ * @Brief Generic string key comparator.
+ *
+ * Compares two given strings and returns a negative, 0 or positive
+ * number if less than, equal or greater for the keys specified.
+ *
+ * @param key1 First string key to be compared.
+ * @param key2 Second string key to be compared.
+ *
+ * @returns Returns a negative, 0 or positive number if @p key1
+ * is less than, equal or greater than @p key2.
+ */
+int hashtable_cmp_string(const void *key1, const void *key2)
+{
+	return (strcmp(key1, key2));
+}
+
+/*---------------------------------------------------------------------------*
+ * sdbm Hash Functions                                                       *
+ *---------------------------------------------------------------------------*/
+
+/**
+ * @brief sdbm algorithm.
+ *
+ * @param key String key to be hashed.
+ *
+ * @return Returns a 64-bit hashed number for the @p key argument.
+ *
+ * @note This algorithm shows a decent randomness, low collisions rate,
+ * fast and easy to implement.
+ *
+ * More information about this and others:
+ * https://softwareengineering.stackexchange.com/a/145633/
+ */
+uint64_t hashtable_sdbm(const void *key, size_t size)
+{
+	unsigned char *str;  /* String pointer.    */
+	uint64_t hash;       /* Resulting hash.    */
+	int c;               /* Current character. */
+	((void)size);
+
+	str = (unsigned char *)key;
+	hash = 0;
+
+	while ((c = *str++) != 0)
+		hash = c + (hash << 6) + (hash << 16) - hash;
+
+	return (hash);
+}
+
+/**
+ * @brief Setup for the sdbm hash function.
+ *
+ * @param ht Hashtable pointer.
+ */
+void hashtable_sdbm_setup(struct hashtable **ht)
+{
+	(*ht)->hash = hashtable_sdbm;
+	(*ht)->cmp = hashtable_cmp_string;
+	(*ht)->key_size = 1;
 }
 
 /*----------------------------------------------------------------------------*

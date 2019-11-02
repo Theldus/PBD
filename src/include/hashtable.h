@@ -83,6 +83,10 @@
 	/* ==================== Hash functions ==================== */
 	extern int hashtable_cmp_ptr(const void *key1, const void *key2);
 
+	/* sdbm. */
+	extern void hashtable_sdbm_setup(struct hashtable **ht);
+	extern uint64_t hashtable_sdbm(const void *key, size_t size);
+
 	/* Splitmix64. */
 	extern void hashtable_splitmix64_setup(struct hashtable **ht);
 	extern uint64_t hashtable_splitmix64_hash(const void *key, size_t size);

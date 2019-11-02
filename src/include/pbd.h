@@ -31,17 +31,22 @@
 	#define RLSE_VERSION "-rc"
 
 	/* Arguments flags. */
-	#define FLG_DUMP_ALL     0x01
+	#define FLG_SHOW_LINES   0x01
 	#define FLG_ONLY_LOCALS  0x02
 	#define FLG_ONLY_GLOBALS 0x04
 	#define FLG_IGNR_LIST    0x08
-	#define FLG_SHOW_LINES   0x10
+	#define FLG_WATCH_LIST   0x10
+	#define FLG_DUMP_ALL     0x20
 
 	/* Program arguments. */
 	struct args
 	{
 		uint8_t flags;
-		char *ignr_list;
+		struct iw_list
+		{
+			char *list;
+			struct hashtable *ht_list;
+		} iw_list;
 		char *executable;
 		char *function;
 	};

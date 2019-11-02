@@ -23,6 +23,7 @@
  */
 
 #include "dwarf_helper.h"
+#include "hashtable.h"
 #include "util.h"
 #include "pbd.h"
 #include <inttypes.h>
@@ -520,6 +521,18 @@ struct dw_variable *dw_parse_variable(Dwarf_Die *var_die, struct dw_utils *dw)
 
 		/* Deallocates. */
 		dwarf_dealloc(dw->dbg, name, DW_DLA_STRING);
+
+		/* Check if this variable is elegible to be added or not. */
+		if (args.flags & FLG_IGNR_LIST)
+		{
+			if (hashtable_get(&args.iw_list.ht_list, var->name) != NULL)
+				goto err0;
+		}
+		else if (args.flags & FLG_WATCH_LIST)
+		{
+			if (hashtable_get(&args.iw_list.ht_list, var->name) == NULL)
+				goto err0;
+		}
 
 		/* Location. */
 		if (dw_parse_variable_location(var_die, dw, var))

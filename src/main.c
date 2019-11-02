@@ -35,6 +35,7 @@
 #include "optparse.h"
 
 #include "pbd.h"
+#include <ctype.h>
 #include <inttypes.h>
 
 /* Depth, useful for recursive analysis. */
@@ -125,6 +126,10 @@ void finish(void)
 
 	/* Deallocate breakpoints. */
 	bp_list_free(breakpoints);
+
+	/* Deallocate watch or ignore list, if available. */
+	if (args.iw_list.ht_list != NULL)
+		hashtable_finish(&args.iw_list.ht_list, 1);
 }
 
 /**
@@ -342,11 +347,16 @@ void usage(int retcode, const char *prg_name)
 {
 	printf("Usage: %s [options] executable function_name\n", prg_name);
 	printf("Options:\n");
-	printf("  -h --help         Display this information\n");
-	printf("  -v --version      Display the PBD version\n");
-	printf("  -s --show-lines   Shows the debugged source code portion in the output\n");
-	printf("  -g --only-globals Monitors only global variables (default: global + local)\n");
-	printf("  -l --only-locals  Monitors only local variables (default: global + local)\n");
+	printf("  -h --help          Display this information\n");
+	printf("  -v --version       Display the PBD version\n");
+	printf("  -s --show-lines    Shows the debugged source code portion in the output\n");
+	printf("  -l --only-locals   Monitors only local variables (default: global + local)\n");
+	printf("  -g --only-globals  Monitors only global variables (default: global + local)\n");
+	printf("  -i --ignore-list <var1, ...> Ignores a specified list of variables names\n");
+	printf("  -w --watch-list  <var1, ...> Monitors a specified list of variables names\n");
+
+	printf("\nNotes:\n");
+	printf("  Options -i and -w are mutually exclusive!");
 
 	printf("\n\nThe following options are for PBD internals:\n");
 	printf("  -d --dump-all    Dump all information gathered by the executable\n");
@@ -365,6 +375,53 @@ static void version(void)
 }
 
 /**
+ * @brief Parses the watch- and ignore-list and creates
+ * a hashtable with each variable name inside.
+ *
+ * @param list watch- or ignore-list to be parsed.
+ *
+ * @return Returns a hashtable with each variable name
+ * parsed.
+ */
+static struct hashtable *parse_list(char *list)
+{
+	struct hashtable *ht; /* Hashtable.        */
+	char *s;              /* Temporary string. */
+	char *var;            /* Variable name.    */
+	char *trimmed;        /* Trimmed list.     */
+	int idx;              /* Loop index.       */
+
+	/*
+	 * Since the user could add extra-spaces inside the list
+	 * lets remove them.
+	 */
+	idx = 0;
+	trimmed = malloc(sizeof(char) * (strlen(list) + 1));
+
+	for (int i = 0; list[i] != '\0'; i++)
+		if (!isblank(list[i]))
+			trimmed[idx++] = list[i];
+
+	trimmed[idx] = '\0';
+
+	/* Initialize hash table. */
+	hashtable_init(&ht, hashtable_sdbm_setup);
+	s = trimmed;
+
+	/* For each var, adds into a hashtable. */
+	for (s = strtok(s, ","); s != NULL; s = strtok(NULL, ","))
+	{
+		var = malloc(sizeof(char) * (strlen(s) + 1));
+		strcpy(var, s);
+		hashtable_add(&ht, var, var);
+	}
+
+	free(trimmed);
+	free(list);
+	return (ht);
+}
+
+/**
  * Parses the command-line arguments.
  *
  * @param argc Argument counter.
@@ -379,12 +436,14 @@ static void readargs(int argc, char **argv)
 
 	/* Current arguments list. */
 	struct optparse_long longopts[] = {
-		{"version",      'v', OPTPARSE_NONE},
-		{"help",         'h', OPTPARSE_NONE},
-		{"show-lines",   's', OPTPARSE_NONE},
-		{"only-globals", 'g', OPTPARSE_NONE},
-		{"only-locals",  'l', OPTPARSE_NONE},
-		{"dump-all",     'd', OPTPARSE_NONE},
+		{"version",      'v',     OPTPARSE_NONE},
+		{"help",         'h',     OPTPARSE_NONE},
+		{"show-lines",   's',     OPTPARSE_NONE},
+		{"only-locals",  'l',     OPTPARSE_NONE},
+		{"only-globals", 'g',     OPTPARSE_NONE},
+		{"ignore-list",  'i', OPTPARSE_REQUIRED},
+		{"watch-list",   'w', OPTPARSE_REQUIRED},
+		{"dump-all",     'd',     OPTPARSE_NONE},
 		{0}
 	};
 
@@ -408,6 +467,40 @@ static void readargs(int argc, char **argv)
 			case 'g':
 				args.flags |= FLG_ONLY_GLOBALS;
 				break;
+			case 'i':
+				if (args.flags & FLG_WATCH_LIST)
+				{
+					fprintf(stderr, "%s: options -i and -w"
+						" are mutually exclusive!\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+
+				args.flags |= FLG_IGNR_LIST;
+				if (args.iw_list.list != NULL)
+					free(args.iw_list.list);
+
+				args.iw_list.list = malloc(sizeof(char) *
+					(strlen(options.optarg) + 1));
+
+				strcpy(args.iw_list.list, options.optarg);
+				break;
+			case 'w':
+				if (args.flags & FLG_IGNR_LIST)
+				{
+					fprintf(stderr, "%s: options -i and -w"
+						" are mutually exclusive!\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+
+				args.flags |= FLG_WATCH_LIST;
+				if (args.iw_list.list != NULL)
+					free(args.iw_list.list);
+
+				args.iw_list.list = malloc(sizeof(char) *
+					(strlen(options.optarg) + 1));
+
+				strcpy(args.iw_list.list, options.optarg);
+				break;
 			case 'd':
 				args.flags |= FLG_DUMP_ALL;
 				break;
@@ -425,8 +518,9 @@ static void readargs(int argc, char **argv)
 	if ( !(args.flags & (FLG_ONLY_GLOBALS|FLG_ONLY_LOCALS)) )
 		args.flags |= FLG_ONLY_GLOBALS|FLG_ONLY_LOCALS;
 
-	if (args.flags & FLG_DUMP_ALL)
-		dump_all(argv[0]);
+	/* If ignore list, lets parse each variable. */
+	if (args.flags & (FLG_IGNR_LIST|FLG_WATCH_LIST))
+		args.iw_list.ht_list = parse_list(args.iw_list.list);
 }
 
 /**
@@ -436,6 +530,9 @@ int main(int argc, char **argv)
 {
 	/* Read arguments. */
 	readargs(argc, argv);
+
+	if (args.flags & FLG_DUMP_ALL)
+		dump_all(argv[0]);
 
 	/* Ensure we have the minimal necessary. */
 	if (args.executable == NULL || args.function == NULL)
