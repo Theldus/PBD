@@ -34,7 +34,7 @@
  * @return In case of success, returns the child PID,
  * otherwise, a negative number.
  */
-int pt_spawnprocess(const char *file)
+int pt_spawnprocess(const char *file, char **argv)
 {
 	pid_t child; /* Child Process. */
 
@@ -42,7 +42,7 @@ int pt_spawnprocess(const char *file)
 	if (child == 0)
 	{
 		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-		execl(file, file, NULL);
+		execv(file, (char *const *)argv);
 	}
 
 	return (child);

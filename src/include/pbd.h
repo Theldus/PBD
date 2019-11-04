@@ -49,6 +49,7 @@
 		} iw_list;
 		char *executable;
 		char *function;
+		char **argv;
 	};
 
 	extern struct args args;

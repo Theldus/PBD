@@ -44,7 +44,7 @@
 	/* Child Exit Signal. */
 	#define PT_CHILD_EXIT 1
 
-	extern int pt_spawnprocess(const char *file);
+	extern int pt_spawnprocess(const char *file, char **argv);
 	extern int pt_waitchild(void);
 	extern int pt_continue(pid_t child);
 	extern int pt_continue_single_step(pid_t child);

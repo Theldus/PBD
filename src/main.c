@@ -138,7 +138,7 @@ void finish(void)
  * @param file File to be analyzed.
  * @param function Function to be analyzed.
  */
-void do_analysis(const char *file, const char *function)
+void do_analysis(const char *file, const char *function, char **argv)
 {
 	pid_t child;                /* Spawned child process. */
 	int init_vars;              /* Initialize vars flags. */
@@ -153,7 +153,7 @@ void do_analysis(const char *file, const char *function)
 	setup(file, function);
 
 	/* Tries to spawn the process. */
-	if ((child = pt_spawnprocess(file)) < 0)
+	if ((child = pt_spawnprocess(file, argv)) < 0)
 		QUIT(-1, "error while spawning the child process!\n");
 
 	/* Wait child, create the breakpoint list and insert them. */
@@ -301,7 +301,7 @@ static void dump_all(const char *prg_name)
 
 	/* Setup and spawns cihld. */
 	setup(args.executable, args.function);
-	if ((child = pt_spawnprocess(args.executable)) < 0)
+	if ((child = pt_spawnprocess(args.executable, NULL)) < 0)
 		QUIT(-1, "error while spawning the child process!\n");
 
 	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
@@ -345,7 +345,8 @@ static void dump_all(const char *prg_name)
  */
 void usage(int retcode, const char *prg_name)
 {
-	printf("Usage: %s [options] executable function_name\n", prg_name);
+	printf("Usage: %s [options] executable function_name [executable_options]\n",
+		prg_name);
 	printf("Options:\n");
 	printf("  -h --help          Display this information\n");
 	printf("  -v --version       Display the PBD version\n");
@@ -513,6 +514,16 @@ static void readargs(int argc, char **argv)
 	/* Print remaining arguments. */
 	args.executable = optparse_arg(&options);
 	args.function = optparse_arg(&options);
+	args.argv = options.argv + options.optind - 1;
+
+	/*
+	 * Reverse arguments order.
+	 * Instead of creating another list, it is easier to
+	 * invert the function name with the executable name
+	 * and pass the same argv that the PBD receives, ;-).
+	 */
+	if (args.executable != NULL)
+		options.argv[options.optind - 1] = args.executable;
 
 	/* If no one variable options set, set all. */
 	if ( !(args.flags & (FLG_ONLY_GLOBALS|FLG_ONLY_LOCALS)) )
@@ -542,6 +553,6 @@ int main(int argc, char **argv)
 	}
 
 	/* Analyze. */
-	do_analysis(args.executable, args.function);
+	do_analysis(args.executable, args.function, args.argv);
 	return (0);
 }
