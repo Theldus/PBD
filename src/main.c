@@ -366,7 +366,9 @@ void usage(int retcode, const char *prg_name)
 	printf("  -w --watch-list  <var1, ...> Monitors a specified list of variables names\n");
 
 	printf("\nNotes:\n");
-	printf("  Options -i and -w are mutually exclusive!");
+	printf("  - Options -i and -w are mutually exclusive!\n\n");
+	printf("  - The executable *must* be built without any optimization and with at\n"
+		   "    least -gdwarf-2 and no PIE! (if PIE enabled by default)");
 
 	printf("\n\nThe following options are for PBD internals:\n");
 	printf("  -d --dump-all    Dump all information gathered by the executable\n");
