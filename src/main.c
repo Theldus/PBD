@@ -76,6 +76,15 @@ int setup(const char *file, const char *function)
 	/* Searches for the target function */
 	dw_get_address_by_function(&dw, function);
 
+	/* Ensure we're debugging a C program. */
+	if (!dw_is_c_language(&dw))
+	{
+		fprintf(stderr, "PBD: Unsupported language, languages supported: \n"
+			"  -> C, standards: C89, C99 and C11\n");
+		dw_finish(&dw);
+		exit(-1);
+	}
+
 	/* Initialize first function context. */
 	array_init(&context);
 		f = calloc(1, sizeof(struct function));

@@ -1022,6 +1022,57 @@ out0:
 }
 
 /**
+ * @brief Asserts if the current compile unit was build in a C
+ * language.
+ *
+ * Since PBD only supports C (and have no intention to support others),
+ * it's important to do this check, in order to avoid trying to debug
+ * unsupported languages, like C++.
+ *
+ * @param dw Dwarf Utils Structure Pointer.
+ *
+ * @return Returns 0 if not C and 1 if the Compile Unit is C.
+ */
+int dw_is_c_language(struct dw_utils *dw)
+{
+	Dwarf_Error error;    /* Error code.  */
+	Dwarf_Bool battr;     /* Boolean.     */
+	Dwarf_Attribute attr; /* Attribute.   */
+	Dwarf_Unsigned lang;  /* Language.    */
+	int ret;              /* Return code. */
+
+	ret = 0;
+
+	/* Invalid Compile Unit. */
+	if (!dw->cu_die)
+		QUIT(-1, "Compile Unit not found!\n");
+
+	/* Get build language. */
+	if (!dwarf_hasattr(dw->cu_die, DW_AT_language, &battr, &error) && battr)
+	{
+		if (dwarf_attr(dw->cu_die, DW_AT_language, &attr, &error))
+			goto out;
+		if (dwarf_formudata(attr, &lang, &error))
+			goto out;
+
+		/* Check if C. */
+		switch (lang)
+		{
+			case DW_LANG_C89:
+			case DW_LANG_C:
+			case DW_LANG_C99:
+			case DW_LANG_C11:
+				ret = 1;
+				break;
+			default:
+				break;
+		}
+	}
+out:
+	return (ret);
+}
+
+/**
  * @brief Dump all lines found in the target function.
  *
  * @param lines Lines array.

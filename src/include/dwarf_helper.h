@@ -228,6 +228,8 @@
 
 	extern void dw_lines_dump(struct array *lines);
 
+	extern int dw_is_c_language(struct dw_utils *dw);
+
 	extern void dw_lines_array_free(struct array *lines);
 
 #endif /* DWARF_UTILS_H */
