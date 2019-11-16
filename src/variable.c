@@ -156,6 +156,63 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 }
 
 /**
+ * @brief Given two memory blocks (arrays), compares each position
+ * and returns the offset that differs.
+ *
+ * @param v1 First memory block to be compared.
+ * @param v2 Second memory block to be compared.
+ * @param n Memory block size.
+ * @param block_size Size per element.
+ *
+ * @return Returns the byte offset of the change (0 inclusive), or -1 if
+ * there is no change.
+ *
+ * @note Its *very* important to note that this function is endianness
+ * sensitive and is unlikely to work on big-endian targets. Since PBD
+ * only supports x86_64 (at the moment), this should not be a problem.
+ */
+static int var_memcmp(const void *v1, const void *v2, size_t n, size_t block_size)
+{
+	const uint64_t *u64p1; /* 8-byte pointer, first memory block.  */
+	const uint64_t *u64p2; /* 8-byte pointer, second memory block. */
+	const uint8_t  *u8p1;  /* 1-byte pointer, first memory block.  */
+	const uint8_t  *u8p2;  /* 1-byte pointer, second memory block. */
+	size_t size;           /* Memory block size.                   */
+	int trailing_zeros;    /* Trailing zeros of a 64-bit word.     */
+
+	u64p1 = v1;
+	u64p2 = v2;
+	size  = n;
+
+	/* Multiples of word. */
+	while (n >= 8)
+	{
+		if (*u64p1 != *u64p2)
+		{
+			trailing_zeros = __builtin_ctzll(*u64p1 ^ *u64p2);
+			return ( (trailing_zeros / (block_size << 3)) * block_size ) + (size - n);
+		}
+
+		u64p1++;
+		u64p2++;
+		n -= 8;
+	}
+
+	u8p1 = (const uint8_t *) u64p1;
+	u8p2 = (const uint8_t *) u64p2;
+
+	/* Remaining bytes. */
+	while (n)
+	{
+		if (*u8p1++ != *u8p2++)
+			return (size - n);
+		n--;
+	}
+
+	return (-1);
+}
+
+/**
  * @brief Allocates a new function context.
  *
  * Allocates a new function context by carefully duplicating
@@ -535,9 +592,11 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			if (v->type.array.var_type == TBASE_TYPE)
 			{
 				int changed;             /* Variable status.  */
-				char *v1;                /* Variable old.     */
-				char *v2;                /* Variable new.     */
+				char *v1, *cmp1;    /* Variable old.     */
+				char *v2, *cmp2;    /* Variable new.     */
 				size_t size_per_element; /* Size per element. */
+				int byte_offset;         /* Byte offset.      */
+				size_t size;
 
 				/* Read and compares its value. */
 				var_read(&value, v, child);
@@ -546,61 +605,66 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 				v1 = (char *)v->value.p_value;
 				v2 = (char *)value.p_value;
 				size_per_element = v->type.array.size_per_element;
+				size = v->byte_size;
 				changed = 0;
 
 				/* Compares each position */
-				for (size_t i = 0; i < v->byte_size; i += size_per_element)
+				cmp1 = v1;
+				cmp2 = v2;
+				while ( ((size_t)(cmp1 - v1)) < v->byte_size
+					&& (byte_offset = var_memcmp(cmp1, cmp2, size, size_per_element)) >= 0 )
 				{
-					if (memcmp(v1, v2, size_per_element))
+					union var_value value1;
+					union var_value value2;
+					changed = 1;
+
+					cmp1 += byte_offset;
+					cmp2 += byte_offset;
+
+					/*
+					 * Fill the value1 and 2 with the element
+					 * read in the iteration.
+					 */
+					memcpy(value1.u8_value, cmp1, size_per_element);
+					memcpy(value2.u8_value, cmp2, size_per_element);
+
+					/* If one dimension. */
+					if (v->type.array.dimensions == 1)
 					{
-						union var_value value1;
-						union var_value value2;
-						changed = 1;
+						index_per_dimension[0] = byte_offset / size_per_element;
 
-						/*
-						 * Fill the value1 and 2 with the element
-						 * read in the iteration.
-						 */
-						memcpy(value1.u8_value, v1, size_per_element);
-						memcpy(value2.u8_value, v2, size_per_element);
-
-						/* If one dimension. */
-						if (v->type.array.dimensions == 1)
-						{
-							index_per_dimension[0] = i / size_per_element;
-
-							/* Output changes using the current printer. */
-							line_output(depth, b->line_no, v, &value1, &value2,
-								index_per_dimension);
-						}
-
-						/* If multiple dimensions. */
-						else
-						{
-							int div;
-							int idx_dim;
-
-							div = i / size_per_element;
-							idx_dim = v->type.array.dimensions - 1;
-
-							/* Calculate indexes. */
-							for (int j = 0; j < v->type.array.dimensions && div; j++)
-							{
-								index_per_dimension[idx_dim] =
-									div % v->type.array.elements_per_dimension[idx_dim];
-
-								div /= v->type.array.elements_per_dimension[idx_dim];
-								idx_dim--;
-							}
-
-							/* Output changes using the current printer. */
-							line_output(depth, b->line_no, v, &value1, &value2,
-								index_per_dimension);
-						}
+						/* Output changes using the current printer. */
+						line_output(depth, b->line_no, v, &value1, &value2,
+							index_per_dimension);
 					}
 
-					v1 += size_per_element;
-					v2 += size_per_element;
+					/* If multiple dimensions. */
+					else
+					{
+						int div;
+						int idx_dim;
+
+						div = byte_offset / size_per_element;
+						idx_dim = v->type.array.dimensions - 1;
+
+						/* Calculate indexes. */
+						for (int j = 0; j < v->type.array.dimensions && div; j++)
+						{
+							index_per_dimension[idx_dim] =
+								div % v->type.array.elements_per_dimension[idx_dim];
+
+							div /= v->type.array.elements_per_dimension[idx_dim];
+							idx_dim--;
+						}
+
+						/* Output changes using the current printer. */
+						line_output(depth, b->line_no, v, &value1, &value2,
+							index_per_dimension);
+					}
+
+					cmp1 += size_per_element;
+					cmp2 += size_per_element;
+					size -= byte_offset + size_per_element;
 				}
 
 				/*

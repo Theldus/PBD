@@ -216,7 +216,7 @@ char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
 	char *data;      /* Return pointer.   */
 
 	/* Allocates enough room for the data to be read. */
-	if ((data = malloc(sizeof(char) * len)) == NULL)
+	if (posix_memalign((void *)&data, sizeof(void *), sizeof(char) * len) != 0)
 		return (NULL);
 
 	/*
