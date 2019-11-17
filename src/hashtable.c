@@ -25,6 +25,7 @@
 #include "hashtable.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -724,7 +725,7 @@ int main(void)
 	if (hashtable_init(&ht, NULL))
 	{
 		fprintf(stderr, "hashtable: error while allocating hashtable\n");
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Tests. */

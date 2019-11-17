@@ -50,14 +50,14 @@ int *dw_init(const char *file, struct dw_utils *dw)
 	/* Open file. */
 	dw->fd = open(file, O_RDONLY);
 	if (dw->fd < 0)
-		QUIT(-1, "File not found\n");
+		QUIT(EXIT_FAILURE, "File not found\n");
 
 	/* Initializes dwarf. */
 	errhand = NULL;
 	errarg  = NULL;
 	res = dwarf_init(dw->fd, DW_DLC_READ, errhand, errarg, &dw->dbg, &error);
 	if(res != DW_DLV_OK)
-		QUIT(-1, "Cannot process file\n");
+		QUIT(EXIT_FAILURE, "Cannot process file\n");
 
 	dw->initialized = 1;
 	return (0);
@@ -125,7 +125,7 @@ int dw_next_cu_die(struct dw_utils *dw, Dwarf_Die *die)
 	/* Read a CU die from the CU. */
 	res = dwarf_siblingof(dw->dbg, no_die, die, &error);
 	if(res == DW_DLV_ERROR)
-		QUIT(-1, "No CU die found!!\n");
+		QUIT(EXIT_FAILURE, "No CU die found!!\n");
 
 	return (1);
 }
@@ -614,7 +614,7 @@ int dw_get_address_by_function
 		do
 		{
 			if (dwarf_tag(child, &tag, &error) != DW_DLV_OK)
-		        QUIT(-1, "Error in dwarf_tag\n");
+		        QUIT(EXIT_FAILURE, "Error in dwarf_tag\n");
 
 			/* Only interested in subprogram DIEs here */
 			if (tag != DW_TAG_subprogram)
@@ -650,14 +650,14 @@ int dw_get_address_by_function
 								if (!dwarf_formaddr(attr, &ahigh_pc, &error))
 									dw->dw_func.high_pc = ahigh_pc - 1;
 								else
-									QUIT(-1, "Error while getting high pc from formaddr");
+									QUIT(EXIT_FAILURE, "Error while getting high pc from formaddr");
 							}
 							else
 							{
 								if (!dwarf_formudata(attr, &uhigh_pc, &error))
 									dw->dw_func.high_pc = uhigh_pc + alow_pc - 1;
 								else
-									QUIT(-1, "Error while getting high pc from formudata");
+									QUIT(EXIT_FAILURE, "Error while getting high pc from formudata");
 							}
 
 							dw->cu_die = die;
@@ -761,7 +761,7 @@ static int dw_get_base_pointer_offset(struct dw_utils *dw)
 
 		/* If cannot find any base pointer, error. */
 		if (dw->dw_func.bp_offset == INT_MIN)
-			QUIT(-1, "cannot find any base pointer!\n"
+			QUIT(EXIT_FAILURE, "cannot find any base pointer!\n"
 				"  make sure you're building your target with: \n"
 				"  -O0 -gdwarf-2 -fno-omit-frame-pointer\n");
 
@@ -805,7 +805,7 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 
 	/* Invalid Compile Unit. */
 	if (!dw->cu_die)
-		QUIT(-1, "Compile Unit not found!\n");
+		QUIT(EXIT_FAILURE, "Compile Unit not found!\n");
 
 	/*
 	 * Base pointer offset
@@ -844,7 +844,7 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 				if (dwarf_tag(child1, &tag, &error) != DW_DLV_OK)
 				{
 					array_finish(&vars);
-					QUIT(-1, "Error in dwarf_tag\n");
+					QUIT(EXIT_FAILURE, "Error in dwarf_tag\n");
 				}
 
 				/* Only interested in global variables DIEs here */
@@ -874,7 +874,7 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 		if (dwarf_child(dw->fn_die, &child1, &error) != DW_DLV_OK)
 		{
 			array_finish(&vars);
-			QUIT(-1, "subprogram not found\n");
+			QUIT(EXIT_FAILURE, "subprogram not found\n");
 		}
 
 		do
@@ -887,7 +887,7 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 			if (dwarf_tag(child1, &tag, &error) != DW_DLV_OK)
 			{
 				array_finish(&vars);
-				QUIT(-1, "Error in dwarf_tag\n");
+				QUIT(EXIT_FAILURE, "Error in dwarf_tag\n");
 			}
 
 			/* Only interested in local variables DIEs here */
@@ -930,12 +930,12 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 
 	/* Invalid Compile Unit. */
 	if (!dw->cu_die)
-		QUIT(-1, "Compile Unit not found!\n");
+		QUIT(EXIT_FAILURE, "Compile Unit not found!\n");
 
 	/* Invalid Function. */
 	if (dw->dw_func.low_pc == 0 || dw->dw_func.high_pc == 0
 		|| (dw->dw_func.high_pc <= dw->dw_func.low_pc) )
-		QUIT(-1, "Invalid Function Range!\n");
+		QUIT(EXIT_FAILURE, "Invalid Function Range!\n");
 
 	/* Initializes array. */
 	array_init(&array_lines);
@@ -944,7 +944,7 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 	if (dwarf_srclines(dw->cu_die, &lines, &nlines, &error) != DW_DLV_OK)
 	{
 		array_finish(&array_lines);
-		QUIT(-1, "Error while getting the lines!\n");
+		QUIT(EXIT_FAILURE, "Error while getting the lines!\n");
 	}
 
 	/*
@@ -957,7 +957,7 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 		if (dwarf_lineaddr(lines[i], &lineaddr, &error))
 		{
 			array_finish(&array_lines);
-			QUIT(-1, "Cannot retrieve the line address!\n");
+			QUIT(EXIT_FAILURE, "Cannot retrieve the line address!\n");
 		}
 
 		/* Skips lines that do not belongs to the target function. */
@@ -968,7 +968,7 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 		if (dwarf_lineno(lines[i], &lineno, &error))
 		{
 			array_finish(&array_lines);
-			QUIT(-1, "Cannot retrieve the line number"
+			QUIT(EXIT_FAILURE, "Cannot retrieve the line number"
 				"from address %x\n", lineaddr);
 		}
 
@@ -1016,7 +1016,7 @@ char *dw_get_source_file(struct dw_utils *dw)
 
 	/* Invalid Compile Unit. */
 	if (!dw->cu_die)
-		QUIT(-1, "Compile Unit not found!\n");
+		QUIT(EXIT_FAILURE, "Compile Unit not found!\n");
 
 	filename = NULL;
 
@@ -1074,7 +1074,7 @@ int dw_is_c_language(struct dw_utils *dw)
 
 	/* Invalid Compile Unit. */
 	if (!dw->cu_die)
-		QUIT(-1, "Compile Unit not found!\n");
+		QUIT(EXIT_FAILURE, "Compile Unit not found!\n");
 
 	/* Get build language. */
 	if (!dwarf_hasattr(dw->cu_die, DW_AT_language, &battr, &error) && battr)

@@ -82,7 +82,7 @@ int setup(const char *file, const char *function)
 		fprintf(stderr, "PBD: Unsupported language, languages supported: \n"
 			"  -> C, standards: C89, C99 and C11\n");
 		dw_finish(&dw);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Initialize first function context. */
@@ -167,7 +167,7 @@ void do_analysis(const char *file, const char *function, char **argv)
 
 	/* Tries to spawn the process. */
 	if ((child = pt_spawnprocess(file, argv)) < 0)
-		QUIT(-1, "error while spawning the child process!\n");
+		QUIT(EXIT_FAILURE, "error while spawning the child process!\n");
 
 	/* Wait child, create the breakpoint list and insert them. */
 	pt_waitchild();
@@ -315,7 +315,7 @@ static void dump_all(const char *prg_name)
 	/* Setup and spawns cihld. */
 	setup(args.executable, args.function);
 	if ((child = pt_spawnprocess(args.executable, NULL)) < 0)
-		QUIT(-1, "error while spawning the child process!\n");
+		QUIT(EXIT_FAILURE, "error while spawning the child process!\n");
 
 	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
 		RLSE_VERSION);
@@ -569,5 +569,5 @@ int main(int argc, char **argv)
 
 	/* Analyze. */
 	do_analysis(args.executable, args.function, args.argv);
-	return (0);
+	return (EXIT_SUCCESS);
 }

@@ -474,7 +474,7 @@ void var_initialize(struct array *vars, pid_t child)
 			if (v->scope != VGLOBAL)
 			{
 				if (var_read(&v->scratch_value, v, child))
-					QUIT(-1, "wrong size type!, var name: %s / "
+					QUIT(EXIT_FAILURE, "wrong size type!, var name: %s / "
 						"var size: %d\n", v->name, v->byte_size);
 
 				v->initialized = 0;
@@ -484,7 +484,7 @@ void var_initialize(struct array *vars, pid_t child)
 			else
 			{
 				if (var_read(&v->value, v, child))
-					QUIT(-1, "wrong size type!, var name: %s / "
+					QUIT(EXIT_FAILURE, "wrong size type!, var name: %s / "
 						"var size: %d\n", v->name, v->byte_size);
 
 				v->initialized = 1;
@@ -504,7 +504,7 @@ void var_initialize(struct array *vars, pid_t child)
 			{
 				/* Initialize. */
 				if (var_read(&v->value, v, child))
-					QUIT(-1, "wrong size type!, var name: %s / "
+					QUIT(EXIT_FAILURE, "wrong size type!, var name: %s / "
 						"var size: %d\n", v->name, v->byte_size);
 
 				v->initialized = 1;
