@@ -112,6 +112,7 @@
 	 */
 	struct dw_utils
 	{
+		int initialized;
 		int fd;
 		Dwarf_Debug dbg;
 		Dwarf_Die cu_die;

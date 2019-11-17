@@ -29,6 +29,8 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 
+	#include "pbd.h"
+
 	/**
 	 * Triggers a compile time error if the expression
 	 * evaluates to 0.
@@ -63,6 +65,9 @@
 	    va_start(args, fmt);
 	    vfprintf(stderr, fmt, args);
 	    va_end(args);
+
+	    /* Finish everything. */
+	    finish();
 
 	    exit(code);
 	}

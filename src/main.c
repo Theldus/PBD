@@ -102,6 +102,7 @@ int setup(const char *file, const char *function)
 		{
 			fprintf(stderr, "PBD: Source code %s not found, please check if the file "
 				"exists in your system!\n", filename);
+			finish();
 			exit(EXIT_FAILURE);
 		}
 		line_output = line_detailed_printer;
@@ -122,6 +123,9 @@ int setup(const char *file, const char *function)
  */
 void finish(void)
 {
+	/* Free dwarf structures. */
+	dw_finish(&dw);
+
 	/* Deallocate variables. */
 	fn_free( array_get(&context, 0, NULL) );
 

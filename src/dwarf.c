@@ -59,6 +59,7 @@ int *dw_init(const char *file, struct dw_utils *dw)
 	if(res != DW_DLV_OK)
 		QUIT(-1, "Cannot process file\n");
 
+	dw->initialized = 1;
 	return (0);
 }
 
@@ -71,8 +72,18 @@ void dw_finish(struct dw_utils *dw)
 {
 	Dwarf_Error error; /* Error code. */
 
-	dwarf_finish(dw->dbg, &error);
-	close(dw->fd);
+	if (dw == NULL)
+		return;
+
+	if (dw->initialized)
+		dwarf_finish(dw->dbg, &error);
+
+	if (dw->fd >= 0)
+		close(dw->fd);
+
+	/* Invalidate flags to avoid double finishing. */
+	dw->initialized = 0;
+	dw->fd = -1;
 }
 
 /**
@@ -796,9 +807,6 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 	if (!dw->cu_die)
 		QUIT(-1, "Compile Unit not found!\n");
 
-	/* Initializes array. */
-	array_init(&vars);
-
 	/*
 	 * Base pointer offset
 	 * In order to get the appropriate variable location
@@ -807,6 +815,9 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 	 * dw->fn_die.
 	 */
 	dw_get_base_pointer_offset(dw);
+
+	/* Initializes array. */
+	array_init(&vars);
 
 	/* If globals enabled. */
 	if (args.flags & FLG_ONLY_GLOBALS)
@@ -831,7 +842,10 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 				child0 = child1;
 
 				if (dwarf_tag(child1, &tag, &error) != DW_DLV_OK)
-				    QUIT(-1, "Error in dwarf_tag\n");
+				{
+					array_finish(&vars);
+					QUIT(-1, "Error in dwarf_tag\n");
+				}
 
 				/* Only interested in global variables DIEs here */
 				if (tag != DW_TAG_variable)
@@ -858,7 +872,10 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 		child0 = NULL;
 
 		if (dwarf_child(dw->fn_die, &child1, &error) != DW_DLV_OK)
+		{
+			array_finish(&vars);
 			QUIT(-1, "subprogram not found\n");
+		}
 
 		do
 		{
@@ -868,7 +885,10 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 			child0 = child1;
 
 			if (dwarf_tag(child1, &tag, &error) != DW_DLV_OK)
-			    QUIT(-1, "Error in dwarf_tag\n");
+			{
+				array_finish(&vars);
+				QUIT(-1, "Error in dwarf_tag\n");
+			}
 
 			/* Only interested in local variables DIEs here */
 			if (tag != DW_TAG_variable && tag != DW_TAG_formal_parameter)
@@ -922,7 +942,10 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 
 	/* Get the lines from the Compile Unit specified. */
 	if (dwarf_srclines(dw->cu_die, &lines, &nlines, &error) != DW_DLV_OK)
+	{
+		array_finish(&array_lines);
 		QUIT(-1, "Error while getting the lines!\n");
+	}
 
 	/*
 	 * Loop through all the lines and searchs the lines that
@@ -932,7 +955,10 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 	{
 		/* Retrieve the virtual address for this line. */
 		if (dwarf_lineaddr(lines[i], &lineaddr, &error))
+		{
+			array_finish(&array_lines);
 			QUIT(-1, "Cannot retrieve the line address!\n");
+		}
 
 		/* Skips lines that do not belongs to the target function. */
 		if (lineaddr < dw->dw_func.low_pc || lineaddr > dw->dw_func.high_pc)
@@ -940,8 +966,11 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 
 		/* Retrieve the line number in the source file. */
 		if (dwarf_lineno(lines[i], &lineno, &error))
+		{
+			array_finish(&array_lines);
 			QUIT(-1, "Cannot retrieve the line number"
 				"from address %x\n", lineaddr);
+		}
 
 		/* Everything went fine until here, lets allocate our line. */
 		line = malloc(sizeof(struct dw_line));

@@ -136,6 +136,9 @@ void fn_free_indent(char *buff)
  */
 void fn_free(struct function *f)
 {
+	if (f == NULL)
+		return;
+
 	var_array_free(f->vars);
 	free(f);
 }

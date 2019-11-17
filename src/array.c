@@ -179,7 +179,7 @@ void *array_remove_last(struct array **ar, void **e)
 void* array_get(struct array **array, size_t pos, void **e)
 {
 	/* Array exists and has a valid position. */
-	if (*array == NULL || pos > (*array)->elements)
+	if (*array == NULL || pos >= (*array)->elements)
 		return (NULL);
 
 	/* Valid pointer. */
@@ -218,9 +218,16 @@ void *array_get_last(struct array **array, void **e)
  *
  * @return Returns the number of elements
  * in the array.
+ *
+ * @note This function returns 0 even if the @p array
+ * is invalid!.
  */
 size_t array_size(struct array **array)
 {
+	/* Array exists and theres at least one valid element. */
+	if (*array == NULL || (*array)->elements < 1)
+		return (0);
+
 	return ( (*array)->elements );
 }
 
