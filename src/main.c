@@ -57,7 +57,7 @@ static struct array *context;
 static char *filename;
 
 /* Arguments list. */
-struct args args = {0};
+struct args args = {0,{0,0},0,0,0};
 
 /**
  * @brief Parses all the lines and variables for the target
@@ -460,7 +460,7 @@ static void readargs(int argc, char **argv)
 		{"ignore-list",  'i', OPTPARSE_REQUIRED},
 		{"watch-list",   'w', OPTPARSE_REQUIRED},
 		{"dump-all",     'd',     OPTPARSE_NONE},
-		{0}
+		{0,0,0}
 	};
 
 	optparse_init(&options, argv);
