@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <ctype.h>
 #include "breakpoint.h"
 #include "util.h"
 #include "dwarf_helper.h"
@@ -98,7 +99,12 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 			switch (byte_size)
 			{
 				case 1:
-					snprintf(buffer, BS, "%" PRId8,  (int8_t)  v->u64_value[0]);
+					/* Special case if printable character =). */
+					if ( isprint( ((int8_t)v->u64_value[0]) ) )
+						snprintf(buffer, BS, "%" PRId8 " (%c)", (int8_t) v->u64_value[0],
+							(int8_t) v->u64_value[0]);
+					else
+						snprintf(buffer, BS, "%" PRId8, (int8_t)  v->u64_value[0]);
 					break;
 				case 2:
 					snprintf(buffer, BS, "%" PRId16, (int16_t) v->u64_value[0]);
@@ -118,7 +124,12 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 			switch (byte_size)
 			{
 				case 1:
-					snprintf(buffer, BS, "%" PRIu8,  (uint8_t)  v->u64_value[0]);
+					/* Special case if printable character =). */
+					if ( isprint( ((uint8_t)v->u64_value[0]) ) )
+						snprintf(buffer, BS, "%" PRIu8 " (%c)", (uint8_t) v->u64_value[0],
+							(uint8_t) v->u64_value[0]);
+					else
+						snprintf(buffer, BS, "%" PRIu8, (uint8_t)  v->u64_value[0]);
 					break;
 				case 2:
 					snprintf(buffer, BS, "%" PRIu16, (uint16_t) v->u64_value[0]);
