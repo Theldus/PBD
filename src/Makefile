@@ -40,12 +40,12 @@ OBJ = $(C_SRC:.c=.o)
 %.o: %.c
 	$(CC) $< $(CFLAGS) -c -o $@
 
-all: pbd tests
+all: pbd
 
 pbd: $(OBJ)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
-tests:
+test:
 	$(MAKE) -C tests/
 
 clean:

@@ -24,3 +24,4 @@
 *.o
 src/pbd
 src/tests/test
+src/tests/test_func1_out
