@@ -35,18 +35,36 @@ LDFLAGS  = -ldwarf -lm
 C_SRC = $(wildcard *.c)
 OBJ = $(C_SRC:.c=.o)
 
-.PHONY: tests
+# Prefix
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
+
+# Paths
+BINDIR = $(PREFIX)/bin
 
 %.o: %.c
 	$(CC) $< $(CFLAGS) -c -o $@
 
 all: pbd
 
+# Main program
 pbd: $(OBJ)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
+# Tests
 test:
 	$(MAKE) -C tests/
+
+# Install rules
+install: pbd
+	@# Binary file
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 755 pbd $(DESTDIR)$(BINDIR)
+
+# Uninstall rules
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/pbd
 
 clean:
 	@rm -f $(OBJ) pbd
