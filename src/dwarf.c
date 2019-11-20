@@ -50,7 +50,7 @@ int *dw_init(const char *file, struct dw_utils *dw)
 	/* Open file. */
 	dw->fd = open(file, O_RDONLY);
 	if (dw->fd < 0)
-		QUIT(EXIT_FAILURE, "File not found\n");
+		QUIT(EXIT_FAILURE, "File (%s) not found\n", file);
 
 	/* Initializes dwarf. */
 	errhand = NULL;
@@ -617,6 +617,8 @@ int dw_get_address_by_function
 	/* Clear addresses. */
 	dw->dw_func.high_pc = 0;
 	dw->dw_func.low_pc = 0;
+	dw->cu_die = NULL;
+	dw->fn_die = NULL;
 
 	/*
 	 * Loop through all compile units and searchs
@@ -694,6 +696,11 @@ int dw_get_address_by_function
 		} while (dwarf_siblingof(dw->dbg, child, &child, &error) == DW_DLV_OK);
 	}
 
+	if (dw->cu_die == NULL)
+		QUIT(EXIT_FAILURE, "Compile Unit not found!\n"
+			" > Make sure that the function (%s) really exists and that you"
+			" re building\n   with -gdwarf-2! (and -no-pie if PIE enabled)\n", func);
+
 	return (0);
 }
 
@@ -737,7 +744,7 @@ static int dw_get_base_pointer_offset(struct dw_utils *dw)
 		{
 			fprintf(stderr, "dw_parse_variable: location entries greater than 1\n"
 				"  make sure you're building your target with: \n"
-				"  -O0 -gdwarf-2 -fno-omit-frame-pointer\n");
+				"  -O0 -gdwarf-2 -fno-omit-frame-pointer (and -no-pie if PIE enabled)\n");
 			goto dealloc;
 		}
 
@@ -780,7 +787,7 @@ static int dw_get_base_pointer_offset(struct dw_utils *dw)
 		if (dw->dw_func.bp_offset == INT_MIN)
 			QUIT(EXIT_FAILURE, "cannot find any base pointer!\n"
 				"  make sure you're building your target with: \n"
-				"  -O0 -gdwarf-2 -fno-omit-frame-pointer\n");
+				"  -O0 -gdwarf-2 -fno-omit-frame-pointer (and -no-pie if PIE enabled)\n");
 
 		retcode = 0;
 	}
@@ -885,14 +892,16 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 		/*
 		 * Loop through all the subprogram childs and get
 		 * the local variables.
+		 *
+		 * There is no problem if dwarf_child returns NOT_OK
+		 * this just means that the function do not have
+		 * local variables, hopefully we can still watch
+		 * the global ones, ;-).
 		 */
 		child0 = NULL;
 
 		if (dwarf_child(dw->fn_die, &child1, &error) != DW_DLV_OK)
-		{
-			array_finish(&vars);
-			QUIT(EXIT_FAILURE, "subprogram not found\n");
-		}
+			goto out;
 
 		do
 		{
@@ -920,6 +929,7 @@ struct array *dw_get_all_variables(struct dw_utils *dw)
 		dwarf_dealloc(dw->dbg, child1, DW_DLA_DIE);
 	}
 
+out:
 	return (vars);
 }
 
