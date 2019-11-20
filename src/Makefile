@@ -53,7 +53,7 @@ pbd: $(OBJ)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
 # Tests
-test:
+test: pbd
 	$(MAKE) -C tests/
 
 # Install rules
