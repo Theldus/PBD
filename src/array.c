@@ -405,7 +405,8 @@ int array_selftest(void)
 	struct array *array;
 
 	/* Initializes array. */
-	array_init(&array);
+	if (array_init(&array))
+		return (-1);
 
 	/* Tests. */
 	printf("Initialize array [%s]\n",
@@ -432,7 +433,6 @@ int array_selftest(void)
  */
 int main()
 {
-	array_selftest();
-	return (0);
+	return (array_selftest());
 }
 #endif
