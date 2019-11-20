@@ -41,11 +41,28 @@
 	#include "array.h"
 
 	/* Variables. */
-	enum VAR_SCOPE {VLOCAL, VGLOBAL};
-	enum VAR_TYPE {TBASE_TYPE, TARRAY, TSTRUCTURE, TUNION, TENUM, TPOINTER};
+	#define VLOCAL  0x1
+	#define VGLOBAL 0x2
+
+	/* Variable type. */
+	#define TBASE_TYPE 0x1
+	#define TARRAY     0x2
+	#define TSTRUCTURE 0x4
+	#define TUNION     0x8
+	#define TENUM      0x10
+	#define TPOINTER   0x20
 
 	/* Line types. */
-	enum LINE_TYPE {LBEGIN_STMT = 1, LEND_SEQ = 2, LBLOCK = 4};
+	#define LBEGIN_STMT 0x1
+	#define LEND_SEQ    0x2
+	#define LBLOCK      0x4
+
+	/* Encoding. */
+	#define ENC_UNKNOWN  0x1
+	#define ENC_SIGNED   0x2
+	#define ENC_UNSIGNED 0x4
+	#define ENC_FLOAT    0x10
+	#define ENC_POINTER  0x20
 
 	/*
 	 * Who uses more than 8 dimensions? more than enough,
@@ -130,7 +147,7 @@
 	struct dw_variable
 	{
 		char *name;
-		enum VAR_SCOPE scope;
+		int scope;
 
 		/*
 		 * For TBASE_TYPE variables, the u64_value[2]

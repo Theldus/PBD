@@ -44,6 +44,9 @@ uint64_t gu64;
 char array1dim[10] = {0};
 int array10x10[10][10][10];
 
+/* Pointer test. */
+int *integer_pointer;
+
 /*===========================================================================*
  * Iterative analysis                                                        *
  *===========================================================================*/
@@ -71,6 +74,10 @@ int func1(int func1_local_argument1)
 	float       func1_local_c;
 	double      func1_local_d;
 	long double func1_local_e;
+
+	/* Pointer. */
+	integer_pointer = (int *) 0xdeadbeeb;
+	integer_pointer++;
 
 	/* Arrays single dimension test. */
 	for (size_t i = 0; i < 10; i++)

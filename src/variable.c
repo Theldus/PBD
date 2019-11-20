@@ -94,8 +94,7 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 	switch (encoding)
 	{
 		/* Signed values. */
-		case DW_ATE_signed:
-		case DW_ATE_signed_char:
+		case ENC_SIGNED:
 			switch (byte_size)
 			{
 				case 1:
@@ -119,8 +118,7 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 			break;
 
 		/* Unsigned values. */
-		case DW_ATE_unsigned:
-		case DW_ATE_unsigned_char:
+		case ENC_UNSIGNED:
 			switch (byte_size)
 			{
 				case 1:
@@ -144,7 +142,7 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 			break;
 
 		/* Floating point values, that includes float and double. */
-		case DW_ATE_float:
+		case ENC_FLOAT:
 			switch (byte_size)
 			{
 				case 4:
@@ -155,6 +153,19 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 					break;
 				case 16:
 					snprintf(buffer, BS, "%Lf", v->ld_value);
+					break;
+			}
+			break;
+
+		/* Pointers. */
+		case ENC_POINTER:
+			switch (byte_size)
+			{
+				case 4:
+					snprintf(buffer, BS, "0x%" PRIX32, (uint32_t) v->u64_value[0]);
+					break;
+				case 8:
+					snprintf(buffer, BS, "0x%" PRIX64, (uint64_t) v->u64_value[0]);
 					break;
 			}
 			break;
@@ -359,7 +370,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 	 * enough, otherwise, read an arbitrary amount
 	 * of bytes.
 	 */
-	if (v->type.var_type == TBASE_TYPE)
+	if (v->type.var_type & (TBASE_TYPE|TPOINTER))
 	{
 		/* Global or Static. */
 		if (v->scope == VGLOBAL)
@@ -414,7 +425,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 		 *
 		 * TODO: Implement other types.
 		 */
-		if (v->type.array.var_type == TBASE_TYPE)
+		if (v->type.array.var_type & (TBASE_TYPE|TPOINTER))
 		{
 			/* Global or Static. */
 			if (v->scope == VGLOBAL)
@@ -448,7 +459,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
  * @param child Child process.
  *
  * @TODO: Implement the initialization for other types,
- * other than TBASE_TYPE.
+ * other than TBASE_TYPE and TPOINTER.
  */
 void var_initialize(struct array *vars, pid_t child)
 {
@@ -462,7 +473,7 @@ void var_initialize(struct array *vars, pid_t child)
 		v = array_get(&vars, i, NULL);
 
 		/* Base types. */
-		if (v->type.var_type == TBASE_TYPE)
+		if (v->type.var_type & (TBASE_TYPE|TPOINTER))
 		{
 			/*
 			 * While initializing the variables, we do not know in advance
@@ -511,7 +522,7 @@ void var_initialize(struct array *vars, pid_t child)
 			 *
 			 * TODO: Implement other types.
 			 */
-			if (v->type.array.var_type == TBASE_TYPE)
+			if (v->type.array.var_type & (TBASE_TYPE|TPOINTER))
 			{
 				/* Initialize. */
 				if (var_read(&v->value, v, child))
@@ -535,7 +546,7 @@ void var_initialize(struct array *vars, pid_t child)
  * @param depth Function depth.
  *
  * @TODO: Check variable change for other types, other than
- * TBASE_TYPE.
+ * TBASE_TYPE and TPOINTER.
  */
 void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, int depth)
 {
@@ -549,7 +560,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 		v = array_get(&vars, i, NULL);
 
 		/* If base type. */
-		if (v->type.var_type == TBASE_TYPE)
+		if (v->type.var_type & (TBASE_TYPE|TPOINTER))
 		{
 			/* Read and compares its value. */
 			var_read(&value, v, child);
@@ -565,7 +576,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 					v->value.u64_value[0] = value.u64_value[0];
 					v->value.u64_value[1] = value.u64_value[1];
 
-					if (v->type.encoding != DW_ATE_float)
+					if (v->type.encoding != ENC_FLOAT)
 					{
 						v->scratch_value.u64_value[0] = 0;
 						v->scratch_value.u64_value[0] = 0;
@@ -600,7 +611,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			 *
 			 * TODO: Implement other types.
 			 */
-			if (v->type.array.var_type == TBASE_TYPE)
+			if (v->type.array.var_type & (TBASE_TYPE|TPOINTER))
 			{
 				int changed;             /* Variable status.  */
 				char *v1, *cmp1;    /* Variable old.     */

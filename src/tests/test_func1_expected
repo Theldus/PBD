@@ -3,62 +3,66 @@ PBD (Printf Based Debugger) v0.5-rc
 Debugging function func1:
 
 [depth: 1] Entering function...
-[Line: 69] [local] (func1_local_a) initialized!, before: 0, after: 3
-[Line: 77] [global] (array1dim[0]) has changed!, before: 0, after: 1
-[Line: 77] [global] (array1dim[1]) has changed!, before: 0, after: 2
-[Line: 77] [global] (array1dim[2]) has changed!, before: 0, after: 3
-[Line: 77] [global] (array1dim[3]) has changed!, before: 0, after: 4
-[Line: 77] [global] (array1dim[4]) has changed!, before: 0, after: 5
-[Line: 77] [global] (array1dim[5]) has changed!, before: 0, after: 6
-[Line: 77] [global] (array1dim[6]) has changed!, before: 0, after: 7
-[Line: 77] [global] (array1dim[7]) has changed!, before: 0, after: 8
-[Line: 77] [global] (array1dim[8]) has changed!, before: 0, after: 9
-[Line: 77] [global] (array1dim[9]) has changed!, before: 0, after: 10
-[Line: 79] [global] (array1dim[9]) has changed!, before: 10, after: 19
-[Line: 82] [global] (array10x10[5][7][6]) has changed!, before: 0, after: 1
-[Line: 84] [local] (func1_local_b) initialized!, before: 0, after: 8
-[Line: 87] [local] (func1_local_argument1) initialized!, before: 0, after: 1
-[Line: 93] [global] (gi64) has changed!, before: 0, after: 1
-[Line: 93] [local] (func1_local_b) has changed!, before: 8, after: 9
-[Line: 96] [local] (func1_local_d) initialized!, before: 0.000000, after: 2.030000
-[Line: 97] [local] (func1_local_c) initialized!, before: 0.000000, after: 2.140000
-[Line: 98] [local] (func1_local_c) has changed!, before: 2.140000, after: 3.140000
-[Line: 101] [local] (func1_local_e) initialized!, before: 0.000000, after: 1.123400
-[Line: 102] [local] (func1_local_e) has changed!, before: 1.123400, after: 2.123400
-[Line: 123] [local] (func1_local_d) has changed!, before: 2.030000, after: 0.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 0.000000, after: 5.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 5.000000, after: 10.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 10.000000, after: 15.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 15.000000, after: 20.000000
-[Line: 126] [global] (gi8) has changed!, before: 0, after: 127
-[Line: 127] [global] (gu8) has changed!, before: 0, after: 255
-[Line: 128] [global] (gi16) has changed!, before: 0, after: 32767
-[Line: 129] [global] (gu16) has changed!, before: 0, after: 65535
-[Line: 130] [global] (gi32) has changed!, before: 0, after: 2147483647
-[Line: 131] [global] (gu32) has changed!, before: 0, after: 4294967295
-[Line: 132] [global] (gi64) has changed!, before: 1, after: 9223372036854775807
-[Line: 133] [global] (gu64) has changed!, before: 0, after: 18446744073709551615
+[Line: 72] [local] (func1_local_a) initialized!, before: 0, after: 3
+[Line: 79] [global] (integer_pointer) has changed!, before: 0x0, after: 0xDEADBEEB
+[Line: 80] [global] (integer_pointer) has changed!, before: 0xDEADBEEB, after: 0xDEADBEEF
+[Line: 84] [global] (array1dim[0]) has changed!, before: 0, after: 1
+[Line: 84] [global] (array1dim[1]) has changed!, before: 0, after: 2
+[Line: 84] [global] (array1dim[2]) has changed!, before: 0, after: 3
+[Line: 84] [global] (array1dim[3]) has changed!, before: 0, after: 4
+[Line: 84] [global] (array1dim[4]) has changed!, before: 0, after: 5
+[Line: 84] [global] (array1dim[5]) has changed!, before: 0, after: 6
+[Line: 84] [global] (array1dim[6]) has changed!, before: 0, after: 7
+[Line: 84] [global] (array1dim[7]) has changed!, before: 0, after: 8
+[Line: 84] [global] (array1dim[8]) has changed!, before: 0, after: 9
+[Line: 84] [global] (array1dim[9]) has changed!, before: 0, after: 10
+[Line: 86] [global] (array1dim[9]) has changed!, before: 10, after: 19
+[Line: 89] [global] (array10x10[5][7][6]) has changed!, before: 0, after: 1
+[Line: 91] [local] (func1_local_b) initialized!, before: 0, after: 8
+[Line: 94] [local] (func1_local_argument1) initialized!, before: 0, after: 1
+[Line: 100] [global] (gi64) has changed!, before: 0, after: 1
+[Line: 100] [local] (func1_local_b) has changed!, before: 8, after: 9
+[Line: 103] [local] (func1_local_d) initialized!, before: 0.000000, after: 2.030000
+[Line: 104] [local] (func1_local_c) initialized!, before: 0.000000, after: 2.140000
+[Line: 105] [local] (func1_local_c) has changed!, before: 2.140000, after: 3.140000
+[Line: 108] [local] (func1_local_e) initialized!, before: 0.000000, after: 1.123400
+[Line: 109] [local] (func1_local_e) has changed!, before: 1.123400, after: 2.123400
+[Line: 130] [local] (func1_local_d) has changed!, before: 2.030000, after: 0.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 0.000000, after: 5.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 5.000000, after: 10.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 10.000000, after: 15.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 15.000000, after: 20.000000
+[Line: 133] [global] (gi8) has changed!, before: 0, after: 127
+[Line: 134] [global] (gu8) has changed!, before: 0, after: 255
+[Line: 135] [global] (gi16) has changed!, before: 0, after: 32767
+[Line: 136] [global] (gu16) has changed!, before: 0, after: 65535
+[Line: 137] [global] (gi32) has changed!, before: 0, after: 2147483647
+[Line: 138] [global] (gu32) has changed!, before: 0, after: 4294967295
+[Line: 139] [global] (gi64) has changed!, before: 1, after: 9223372036854775807
+[Line: 140] [global] (gu64) has changed!, before: 0, after: 18446744073709551615
 [depth: 1] Returning to function...
 
 
 [depth: 1] Entering function...
-[Line: 77] [global] (array1dim[9]) has changed!, before: 19, after: 10
-[Line: 79] [global] (array1dim[9]) has changed!, before: 10, after: 19
-[Line: 82] [global] (array10x10[5][7][6]) has changed!, before: 1, after: 2
-[Line: 84] [local] (func1_local_b) initialized!, before: 0, after: 8
-[Line: 87] [local] (func1_local_argument1) initialized!, before: 0, after: 2
-[Line: 93] [global] (gi64) has changed!, before: 9223372036854775807, after: -9223372036854775808
-[Line: 93] [local] (func1_local_b) has changed!, before: 8, after: 9
-[Line: 96] [local] (func1_local_d) initialized!, before: 0.000000, after: 2.030000
-[Line: 97] [local] (func1_local_c) initialized!, before: 0.000000, after: 2.140000
-[Line: 98] [local] (func1_local_c) has changed!, before: 2.140000, after: 3.140000
-[Line: 101] [local] (func1_local_e) initialized!, before: 0.000000, after: 1.123400
-[Line: 102] [local] (func1_local_e) has changed!, before: 1.123400, after: 2.123400
-[Line: 123] [local] (func1_local_d) has changed!, before: 2.030000, after: 0.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 0.000000, after: 5.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 5.000000, after: 10.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 10.000000, after: 15.000000
-[Line: 123] [local] (func1_local_d) has changed!, before: 15.000000, after: 20.000000
-[Line: 132] [global] (gi64) has changed!, before: -9223372036854775808, after: 9223372036854775807
+[Line: 79] [global] (integer_pointer) has changed!, before: 0xDEADBEEF, after: 0xDEADBEEB
+[Line: 80] [global] (integer_pointer) has changed!, before: 0xDEADBEEB, after: 0xDEADBEEF
+[Line: 84] [global] (array1dim[9]) has changed!, before: 19, after: 10
+[Line: 86] [global] (array1dim[9]) has changed!, before: 10, after: 19
+[Line: 89] [global] (array10x10[5][7][6]) has changed!, before: 1, after: 2
+[Line: 91] [local] (func1_local_b) initialized!, before: 0, after: 8
+[Line: 94] [local] (func1_local_argument1) initialized!, before: 0, after: 2
+[Line: 100] [global] (gi64) has changed!, before: 9223372036854775807, after: -9223372036854775808
+[Line: 100] [local] (func1_local_b) has changed!, before: 8, after: 9
+[Line: 103] [local] (func1_local_d) initialized!, before: 0.000000, after: 2.030000
+[Line: 104] [local] (func1_local_c) initialized!, before: 0.000000, after: 2.140000
+[Line: 105] [local] (func1_local_c) has changed!, before: 2.140000, after: 3.140000
+[Line: 108] [local] (func1_local_e) initialized!, before: 0.000000, after: 1.123400
+[Line: 109] [local] (func1_local_e) has changed!, before: 1.123400, after: 2.123400
+[Line: 130] [local] (func1_local_d) has changed!, before: 2.030000, after: 0.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 0.000000, after: 5.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 5.000000, after: 10.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 10.000000, after: 15.000000
+[Line: 130] [local] (func1_local_d) has changed!, before: 15.000000, after: 20.000000
+[Line: 139] [global] (gi64) has changed!, before: -9223372036854775808, after: 9223372036854775807
 [depth: 1] Returning to function...
 

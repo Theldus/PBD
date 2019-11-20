@@ -330,7 +330,23 @@ static int dw_parse_variable_base_type
 				if (dwarf_formudata(attr, &dwarf_unsig, &error))
 					goto err0;
 
-				*encoding = dwarf_unsig;
+				switch (dwarf_unsig)
+				{
+					case DW_ATE_signed:
+					case DW_ATE_signed_char:
+						*encoding = ENC_SIGNED;
+						break;
+					case DW_ATE_unsigned:
+					case DW_ATE_unsigned_char:
+						*encoding = ENC_UNSIGNED;
+						break;
+					case DW_ATE_float:
+						*encoding = ENC_FLOAT;
+						break;
+					default:
+						*encoding = ENC_UNKNOWN;
+						break;
+				}
 			}
 
 			return (0);
@@ -346,6 +362,7 @@ static int dw_parse_variable_base_type
 		else if (tag == DW_TAG_pointer_type)
 		{
 			*var_type = TPOINTER;
+			*encoding = ENC_POINTER;
 
 			/*
 			 * Clang does not output the field DW_AT_byte_size
