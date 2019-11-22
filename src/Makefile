@@ -35,6 +35,12 @@ LDFLAGS  = -ldwarf -lm
 C_SRC = $(wildcard *.c)
 OBJ = $(C_SRC:.c=.o)
 
+# Machine architecture
+ARCH := $(shell uname -m)
+ifneq ($(ARCH), x86_64)
+$(error PBD currently only supports x86_64 architecture!)
+endif
+
 # Prefix
 ifeq ($(PREFIX),)
     PREFIX := /usr/local
