@@ -1,0 +1,113 @@
+.\" MIT License
+.\"
+.\" Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to deal
+.\" in the Software without restriction, including without limitation the rights
+.\" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+.\" copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in all
+.\" copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+.\" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+.\" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+.\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+.\" SOFTWARE.
+.\"
+.TH "PBD" "1" "2019-11-23" "v0.5" "pbd man page"
+.SH NAME
+pbd \- Printf Based Debugger
+.SH SYNOPSIS
+\fBpbd\fR [\fIoptions\fR] executable function_name [\fIexecutable_options\fR]
+.SH DESCRIPTION
+.PP
+\fBPBD\fR is a C debugger for Linux systems, which aims to monitor all
+global and local variables (of a specific function) and nicely print the
+old/new values on the screen, as well as the place where the change has
+occurred.
+.PP
+Focusing on performance, PBD can debug large amounts of variables in a small
+amount of time, and when compared to classic debuggers such as GDB, it
+achieves a speedup of up to 12x depending on the compiler version, GDB and
+workloads used.
+.SH OPTIONS
+.IP "-h --help"
+Display this information
+.IP "-v --version"
+Display the PBD version and copyright.
+.IP "-s --show-lines"
+Prints the line and line number of the code that was changed. By default,
+only the line number is printed.
+.IP "-l --only-locals"
+Monitors only local variables (default: global + local)
+.IP "-g --only-globals"
+Monitors only global variables (default: global + local)
+.IP "-i --ignore-list=var1,var2..."
+Given a comma separated sequence of variables names, PBD will ignore them,
+whether local or global. Options -i and -w are mutually exclusive.
+.IP "-w --watch-list=var1,var2..."
+Given a comma separated sequence of variables names, PBD will only watch them,
+whether local or global. Options -i and -w are mutually exclusive.
+.PP
+The following options are for PBD internals:
+.IP "-d --dump-all"
+Dump all information gathered by the executable: name, size, type, encoding,
+location, its breakpoint list and etc...
+.SH NOTES
+.PP
+At the current release (v0.5) PBD have some points that need some hightlights:
+.PP
+Supported compilers (others might work):
+.RS 2
+.IP \(em 2
+GCC
+.IP \(em 2
+Clang
+.RE
+.PP
+Architecture, OS and Language support:
+.RS 2
+.IP \(em 2
+x86_64 at the moment
+.IP \(em 2
+Linux environments
+.IP \(em 2
+C language
+.RE
+.PP
+DWARF Analysis:
+.RS 2
+.IP \(em 2
+PBD only supports DWARF-2 standard, which means that the user \fB*must*\fR
+build the target executable with \fI\-gdwarf\-2\fR flag.
+.IP \(em 2
+PBD do not support PIE executables, so all the target executables
+\fB*should\fR be built with \fI\-no\-pie\fR flag, if the compiler
+build PIE executables by default.
+.RE
+.PP
+C Features:
+.PP
+Currently PBD lacks the following features from C language, and thus, they will
+not be analyzed if present:
+.RS 2
+.IP \(em 2
+Enumerations
+.IP \(em 2
+Structures
+.IP \(em 2
+Unions
+.RE
+.SH BUGS
+.PP
+No known bugs.
+.SH AUTHOR
+.PP
+Written by Davidson Francis (davidsondfgl@gmail.com), see
+\fIcontributors\fR page in github.com/Theldus/PBD for more details.

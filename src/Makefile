@@ -27,7 +27,7 @@ INCLUDE = $(CURDIR)/include
 # uses a different path for libdwarf, so lets use it.
 INCLUDE_DWARF = /usr/include/libdwarf/
 
-CFLAGS   = -Wall -Wextra
+CFLAGS   = -Wall -Wextra -Werror
 CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF)
 CFLAGS  += -std=c99 -g -O3
 LDFLAGS  = -ldwarf -lm
@@ -41,13 +41,10 @@ ifneq ($(ARCH), x86_64)
 $(error PBD currently only supports x86_64 architecture!)
 endif
 
-# Prefix
-ifeq ($(PREFIX),)
-    PREFIX := /usr/local
-endif
-
 # Paths
-BINDIR = $(PREFIX)/bin
+PREFIX ?= /usr/local
+BINDIR  = $(PREFIX)/bin
+MANDIR  = $(PREFIX)/man
 
 %.o: %.c
 	$(CC) $< $(CFLAGS) -c -o $@
@@ -67,10 +64,15 @@ install: pbd
 	@# Binary file
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 pbd $(DESTDIR)$(BINDIR)
+	@#Manpages
+	install -d $(DESTDIR)$(MANDIR)/man1
+	install -m 0644 $(CURDIR)/man/man1/pbd.1 $(DESTDIR)$(MANDIR)/man1/
+	gzip $(DESTDIR)$(MANDIR)/man1/pbd.1
 
 # Uninstall rules
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/pbd
+	rm -f $(DESTDIR)$(MANDIR)/man1/pbd.1.gz
 
 clean:
 	@rm -f $(OBJ) pbd
