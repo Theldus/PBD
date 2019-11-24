@@ -28,7 +28,7 @@
 	/* Current version. */
 	#define MAJOR_VERSION 0
 	#define MINOR_VERSION 5
-	#define RLSE_VERSION "-rc"
+	#define RLSE_VERSION ""
 
 	/* Arguments flags. */
 	#define FLG_SHOW_LINES   0x01
