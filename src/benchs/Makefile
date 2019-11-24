@@ -21,64 +21,47 @@
 # SOFTWARE.
 
 CC ?= gcc
-INCLUDE = $(CURDIR)/include
+CFLAGS  := -Wall -Wextra
+CFLAGS  += -std=c99
+CFLAGS  += -fno-omit-frame-pointer -O0 -gdwarf-2
 
-# Some distros like Debian Buster (10) and Ubuntu Bionic (18.04)
-# uses a different path for libdwarf, so lets use it.
-INCLUDE_DWARF = /usr/include/libdwarf/
+#
+# PIE Support check
+#
+# In order to PBD works as expected, every source intended to be analyzed
+# _should_ be built with at least -O0 and -gdwarf-2, this is not optional,
+# nonetheless, it's also highly desirable that the frame pointer is not
+# ommited, thus: -fno-omit-frame-pointer.
+#
+# Last but not least, PBD doesn't support 'Position Independent Executables'
+# and all the addresses need to be known from before execution. Since some
+# compilers build 'PIE' executables (yeah, redundant ;-)) by default, we
+# also need to check this in execution time.
+#
+# ---
+# This solution is not the best but at least cover GCC and CLANG...
+#
+PIE_SUPPORT := $(shell echo "int main(){}" | $(CC) -x c -; file a.out \
+	| grep -Ec "shared|pie"; rm a.out &> /dev/null)
 
-CFLAGS   = -Wall -Wextra -Werror
-CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF)
-CFLAGS  += -std=c99 -g -O3
-LDFLAGS  = -ldwarf -lm
-
-C_SRC = $(wildcard *.c)
-OBJ = $(C_SRC:.c=.o)
-
-# Machine architecture
-ARCH := $(shell uname -m)
-ifneq ($(ARCH), x86_64)
-$(error PBD currently only supports x86_64 architecture!)
+ifeq ($(PIE_SUPPORT), 1)
+	CFLAGS += -no-pie
 endif
 
-# Paths
-PREFIX ?= /usr/local
-BINDIR  = $(PREFIX)/bin
-MANDIR  = $(PREFIX)/man
+# Source
+C_SRC = $(wildcard *.c)
+OBJ = $(C_SRC:.c=.o)
 
 %.o: %.c
 	$(CC) $< $(CFLAGS) -c -o $@
 
-all: pbd
+all: bench run_benchs
 
-# Main program
-pbd: $(OBJ)
-	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
+bench: $(OBJ)
+	$(CC) $^ $(CFLAGS) -o $@
 
-# Tests
-test: pbd
-	$(MAKE) -C tests/
-
-# Benchs
-bench: pbd
-	$(MAKE) -C benchs/
-
-# Install rules
-install: pbd
-	@# Binary file
-	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 pbd $(DESTDIR)$(BINDIR)
-	@#Manpages
-	install -d $(DESTDIR)$(MANDIR)/man1
-	install -m 0644 $(CURDIR)/man/man1/pbd.1 $(DESTDIR)$(MANDIR)/man1/
-	gzip $(DESTDIR)$(MANDIR)/man1/pbd.1
-
-# Uninstall rules
-uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/pbd
-	rm -f $(DESTDIR)$(MANDIR)/man1/pbd.1.gz
+run_benchs: bench
+	@bash run-benchs.sh
 
 clean:
-	@rm -f $(OBJ) pbd
-	@$(MAKE) clean -C tests/
-	@$(MAKE) clean -C benchs/
+	@rm -f $(OBJ) bench
