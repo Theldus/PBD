@@ -346,6 +346,7 @@ static void dump_all(const char *prg_name)
 			i, l->line_no, l->addr, (pt_readmemory64(child, l->addr) & 0xFF));
 	}
 
+	kill(child, SIGKILL);
 	finish();
 	exit(EXIT_SUCCESS);
 }
