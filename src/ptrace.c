@@ -228,7 +228,7 @@ char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
 	 * use the tradional (and way slower) ptrace approach.
 	 */
 #if defined(__linux__) && defined(__GLIBC__) \
-	&& __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 15
+	&& (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 15))
 
 	struct iovec local[1];   /* IO Vector Local.  */
 	struct iovec remote[1];  /* IO Vector Remote. */

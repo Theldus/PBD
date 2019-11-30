@@ -28,7 +28,9 @@
 	#define _POSIX_C_SOURCE 200809L
 	#define _XOPEN_SOURCE 700
 
-	#if defined(__GLIBC__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 10
+	#if defined(__GLIBC__) && \
+		(__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 10) )
+
 		#define _GNU_SOURCE
 	#endif
 
