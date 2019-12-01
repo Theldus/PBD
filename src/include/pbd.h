@@ -38,6 +38,13 @@
 	#define FLG_WATCH_LIST   0x10
 	#define FLG_DUMP_ALL     0x20
 
+	/* Experimental features.
+	 *
+	 * If something goes wrong, the following experimental flags
+	 * can be disabled.
+	 */
+	#define EXPERIMENTAL_REMOVE_LINES 1
+
 	/* Program arguments. */
 	struct args
 	{

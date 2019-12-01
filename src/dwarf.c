@@ -999,6 +999,24 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 				"from address %x\n", lineaddr);
 		}
 
+		/*
+		 * In order to speed up the analysis process, the following lines
+		 * removes a 'line' if there is already one with the same
+		 * line number.
+		 *
+		 * However, I don't know if this approach is safe to use in
+		 * production code, and thus, I'll keep this as an experimental
+		 * feature.
+		 */
+#if (EXPERIMENTAL_REMOVE_LINES)
+		for (int i = 0; i < (int) array_size(&array_lines); i++)
+		{
+			line = array_get(&array_lines, i, NULL);
+			if (line->line_no == lineno)
+				goto loop;
+		}
+#endif
+
 		/* Everything went fine until here, lets allocate our line. */
 		line = malloc(sizeof(struct dw_line));
 		line->addr = lineaddr;
@@ -1015,6 +1033,8 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 
 		/* Add to our array. */
 		array_add(&array_lines, line);
+
+	loop:;
 	}
 
 	return (array_lines);
