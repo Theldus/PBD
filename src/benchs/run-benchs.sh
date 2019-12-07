@@ -76,8 +76,12 @@ do
 	echo -n "  > PBD..."
 
 	# Run PBD
+	#
+	# It is safe to use '--avoid-equal-statements' here, since
+	# this does not affects the output from this benchmark.
+	#
 start_time="$(date -u +%s.%N)"
-	../pbd ./bench do_work "$size" &>/dev/null
+	../pbd ./bench do_work "$size" --avoid-equal-statements &>/dev/null
 end_time="$(date -u +%s.%N)"
 
 	elapsed_pbd="$(bc <<<"$end_time-$start_time" | awk '{printf "%f", $0}')"

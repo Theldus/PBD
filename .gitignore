@@ -24,7 +24,7 @@
 *.o
 src/pbd
 src/benchs/bench
-src/benchs/bench.png
+src/benchs/*.png
 src/benchs/csv_times
 src/benchs/gdb_script
 src/tests/test
