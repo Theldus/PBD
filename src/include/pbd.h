@@ -37,13 +37,14 @@
 	#define FLG_IGNR_LIST    0x08
 	#define FLG_WATCH_LIST   0x10
 	#define FLG_DUMP_ALL     0x20
+	#define FLG_IGNR_EQSTAT  0x40
 
 	/* Experimental features.
 	 *
 	 * If something goes wrong, the following experimental flags
 	 * can be disabled.
 	 */
-	#define EXPERIMENTAL_REMOVE_LINES 1
+	/* none yet. */
 
 	/* Program arguments. */
 	struct args

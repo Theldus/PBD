@@ -20,7 +20,7 @@
 .\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
 .\"
-.TH "PBD" "1" "2019-11-23" "v0.5" "pbd man page"
+.TH "PBD" "1" "2019-12-07" "v0.5" "pbd man page"
 .SH NAME
 pbd \- Printf Based Debugger
 .SH SYNOPSIS
@@ -59,6 +59,18 @@ The following options are for PBD internals:
 .IP "-d --dump-all"
 Dump all information gathered by the executable: name, size, type, encoding,
 location, its breakpoint list and etc...
+.PP
+\'Unsafe\' options:
+.PP
+The options below are meant to be used with caution, since
+they could lead to wrong output.
+.IP "--avoid-equal-statements"
+If enabled, PBD will ignore all line statements that are 'duplicated', i.e:
+belongs to the same liner number, regardless its address. Although this could
+lead to a great speed up, this option may produce wrong output in certain
+cases, like tracking loops and multiples changes in the same line. Note that,
+in this case, PBD *will* note the changes, but will identify a wrong line
+number, in most cases, a number greater than the expected.
 .SH NOTES
 .PP
 At the current release (v0.5) PBD have some points that need some hightlights:

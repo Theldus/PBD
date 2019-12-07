@@ -377,6 +377,14 @@ void usage(int retcode, const char *prg_name)
 
 	printf("\n\nThe following options are for PBD internals:\n");
 	printf("  -d --dump-all    Dump all information gathered by the executable\n");
+
+	printf("\n\n'Unsafe' options:\n");
+	printf("  The options below are meant to be used with caution, since they could lead\n"
+		   "  to wrong output.\n\n");
+
+	printf("  --avoid-equal-statements  If enabled, PBD will ignore all line statements\n"
+		   "                            that are 'duplicated', i.e: belongs to the same\n"
+		   "                            liner number, regardless its address.\n\n");
 	exit(retcode);
 }
 
@@ -453,14 +461,15 @@ static void readargs(int argc, char **argv)
 
 	/* Current arguments list. */
 	struct optparse_long longopts[] = {
-		{"version",      'v',     OPTPARSE_NONE},
-		{"help",         'h',     OPTPARSE_NONE},
-		{"show-lines",   's',     OPTPARSE_NONE},
-		{"only-locals",  'l',     OPTPARSE_NONE},
-		{"only-globals", 'g',     OPTPARSE_NONE},
-		{"ignore-list",  'i', OPTPARSE_REQUIRED},
-		{"watch-list",   'w', OPTPARSE_REQUIRED},
-		{"dump-all",     'd',     OPTPARSE_NONE},
+		{"version",                'v',     OPTPARSE_NONE},
+		{"help",                   'h',     OPTPARSE_NONE},
+		{"show-lines",             's',     OPTPARSE_NONE},
+		{"only-locals",            'l',     OPTPARSE_NONE},
+		{"only-globals",           'g',     OPTPARSE_NONE},
+		{"ignore-list",            'i', OPTPARSE_REQUIRED},
+		{"watch-list",             'w', OPTPARSE_REQUIRED},
+		{"dump-all",               'd',     OPTPARSE_NONE},
+		{"avoid-equal-statements", 255,     OPTPARSE_NONE},
 		{0,0,0}
 	};
 
@@ -520,6 +529,9 @@ static void readargs(int argc, char **argv)
 				break;
 			case 'd':
 				args.flags |= FLG_DUMP_ALL;
+				break;
+			case 255:
+				args.flags |= FLG_IGNR_EQSTAT;
 				break;
 			case '?':
 				fprintf(stderr, "%s: %s\n\n", argv[0], options.errmsg);
