@@ -36,7 +36,7 @@ struct array *source_lines = NULL;
  *
  * This buffer holds the value from before and
  * after the value is changed for a single
- * TBASE_TYPE and TPOINTER.
+ * TBASE_TYPE, TENUM and TPOINTER.
  */
 static char before[BS];
 static char after[BS];
@@ -255,7 +255,7 @@ void line_default_printer(int depth, unsigned line_no,
 	union var_value *v_after, int *array_idxs)
 {
 	/* If base type. */
-	if (v->type.var_type & (TBASE_TYPE|TPOINTER))
+	if (v->type.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 	{
 		fn_printf(depth, 0,
 			"[Line: %d] [%s] (%s) %s!, before: %s, after: %s\n",
@@ -329,7 +329,7 @@ void line_detailed_printer(int depth, unsigned line_no,
 		4;
 
 	/* If base type. */
-	if (v->type.var_type & (TBASE_TYPE|TPOINTER))
+	if (v->type.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 	{
 		fn_printf(depth, 0, "[%s:%d]:%s", base_file_name, line_no, line);
 

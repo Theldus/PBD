@@ -76,7 +76,8 @@ void var_dump(struct array *vars)
 /**
  * @brief For a given value, buffer, encoding and size, prepares a
  * formatted string with its content. It's important to note, that
- * this function only formats TBASE_TYPEs.
+ * this function only formats TBASE_TYPE, TENUM and partially
+ * TPOINTERSs.
  *
  * @param buffer Destination buffer, that will holds the formatted
  * string.
@@ -370,7 +371,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 	 * enough, otherwise, read an arbitrary amount
 	 * of bytes.
 	 */
-	if (v->type.var_type & (TBASE_TYPE|TPOINTER))
+	if (v->type.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 	{
 		/* Global or Static. */
 		if (v->scope == VGLOBAL)
@@ -425,7 +426,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 		 *
 		 * TODO: Implement other types.
 		 */
-		if (v->type.array.var_type & (TBASE_TYPE|TPOINTER))
+		if (v->type.array.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 		{
 			/* Global or Static. */
 			if (v->scope == VGLOBAL)
@@ -459,7 +460,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
  * @param child Child process.
  *
  * @TODO: Implement the initialization for other types,
- * other than TBASE_TYPE and TPOINTER.
+ * other than TBASE_TYPE, TENUM and TPOINTER.
  */
 void var_initialize(struct array *vars, pid_t child)
 {
@@ -473,7 +474,7 @@ void var_initialize(struct array *vars, pid_t child)
 		v = array_get(&vars, i, NULL);
 
 		/* Base types. */
-		if (v->type.var_type & (TBASE_TYPE|TPOINTER))
+		if (v->type.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 		{
 			/*
 			 * While initializing the variables, we do not know in advance
@@ -522,7 +523,7 @@ void var_initialize(struct array *vars, pid_t child)
 			 *
 			 * TODO: Implement other types.
 			 */
-			if (v->type.array.var_type & (TBASE_TYPE|TPOINTER))
+			if (v->type.array.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 			{
 				/* Initialize. */
 				if (var_read(&v->value, v, child))
@@ -546,7 +547,7 @@ void var_initialize(struct array *vars, pid_t child)
  * @param depth Function depth.
  *
  * @TODO: Check variable change for other types, other than
- * TBASE_TYPE and TPOINTER.
+ * TBASE_TYPE, TENUM and TPOINTER.
  */
 void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, int depth)
 {
@@ -560,7 +561,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 		v = array_get(&vars, i, NULL);
 
 		/* If base type. */
-		if (v->type.var_type & (TBASE_TYPE|TPOINTER))
+		if (v->type.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 		{
 			/* Read and compares its value. */
 			var_read(&value, v, child);
@@ -611,7 +612,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			 *
 			 * TODO: Implement other types.
 			 */
-			if (v->type.array.var_type & (TBASE_TYPE|TPOINTER))
+			if (v->type.array.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 			{
 				int changed;             /* Variable status.  */
 				char *v1, *cmp1;    /* Variable old.     */

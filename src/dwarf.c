@@ -315,7 +315,16 @@ static int dw_parse_variable_base_type
 			 * is the byte size.
 			 */
 			else if (tag == DW_TAG_enumeration_type)
+			{
 				*var_type = TENUM;
+
+				/*
+				 * Lets assume signed, there is no way to
+				 * to guess the type of the siblings
+				 * 'DW_TAG_enumerator'. =/
+				 */
+				*encoding = ENC_SIGNED;
+			}
 
 			/* Base types. */
 			else
