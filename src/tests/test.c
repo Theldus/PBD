@@ -47,6 +47,10 @@ int array10x10[10][10][10];
 /* Pointer test. */
 int *integer_pointer;
 
+/* Enums test, */
+enum animals{cat = 1, dog = 1, elephant = 3, monkey = 4};
+enum animals anim_vect[4];
+
 /*===========================================================================*
  * Iterative analysis                                                        *
  *===========================================================================*/
@@ -74,6 +78,12 @@ int func1(int func1_local_argument1)
 	float       func1_local_c;
 	double      func1_local_d;
 	long double func1_local_e;
+
+	/* Enums. */
+	anim_vect[0] = cat;
+	anim_vect[1] = dog + anim_vect[0];
+	anim_vect[2] = elephant;
+	anim_vect[3] = monkey;
 
 	/* Pointer. */
 	integer_pointer = (int *) 0xdeadbeeb;
