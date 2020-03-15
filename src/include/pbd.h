@@ -27,7 +27,7 @@
 
 	/* Current version. */
 	#define MAJOR_VERSION 0
-	#define MINOR_VERSION 5
+	#define MINOR_VERSION 6
 	#define RLSE_VERSION ""
 
 	/* Arguments flags. */
