@@ -526,7 +526,6 @@ static void readargs(int argc, char **argv)
 						"parsed!\n", argv[0], options.optarg);
 					usage(EXIT_FAILURE, argv[0]);
 				}
-				printf("num: |%d|\n", args.context);
 				break;
 			case 'l':
 				args.flags |= FLG_ONLY_LOCALS;
