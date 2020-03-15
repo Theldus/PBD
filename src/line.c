@@ -24,12 +24,15 @@
 
 #include "line.h"
 #include "array.h"
+#include "highlight.h"
+#include "pbd.h"
 #include <ctype.h>
 #include <libgen.h>
 #include <math.h>
 
 /* Compile unit source code. */
 struct array *source_lines = NULL;
+struct array *source_lines_highlighted = NULL;
 
 /*
  * Buffer
@@ -158,17 +161,19 @@ static char *line_reindent(const char *line)
  * read the entire file and saves into an array.
  *
  * @param filename File to be read.
+ * @param highlight Enable (or not) syntax highlight.
  *
  * @return Returns 0 if success and a negative number
  * otherwise.
  */
-int line_read_source(const char *filename)
+int line_read_source(const char *filename, int highlight, char *theme_file)
 {
-	FILE *fp;      /* File pointer.   */
-	char *line;    /* Current line.   */
-	char *tmp;     /* Tmp line.       */
-	size_t len;    /* Allocated size. */
-	ssize_t read;  /* Bytes read.     */
+	FILE *fp;         /* File pointer.   */
+	char *line;       /* Current line.   */
+	char *tmp;        /* Tmp line.       */
+	size_t len;       /* Allocated size. */
+	ssize_t read;     /* Bytes read.     */
+	char *reindented; /* Reindent line. */
 
 	line = NULL;
 	len  = 0;
@@ -181,9 +186,43 @@ int line_read_source(const char *filename)
 	/* Initialize array. */
 	array_init(&source_lines);
 
-	/* Read the entire file. */
-	while ((read = getline(&line, &len, fp)) != -1)
-		array_add(&source_lines, line_reindent(line));
+	/* If syntax highlight on.
+	 *
+	 * Note that using syntax highlight ends up using memory memory,
+	 * since we still need the original source code in order to
+	 * calculate the 'cursor' positioning, in the 'line_detailed_printer'.
+	 */
+	if (highlight)
+	{
+		/* Initialize syntax highlighting. */
+		if (highlight_init(theme_file) < 0)
+		{
+			fclose(fp);
+			array_finish(&source_lines);
+			source_lines = NULL;
+			return (-1);
+		}
+
+		array_init(&source_lines_highlighted);
+
+		/* Read the entire file. */
+		while ((read = getline(&line, &len, fp)) != -1)
+		{
+			array_add(&source_lines,
+				(reindented = line_reindent(line)));
+
+			array_add(&source_lines_highlighted,
+				highlight_line(reindented, NULL));
+		}
+
+		highlight_finish();
+	}
+	else
+	{
+		/* Read the entire file. */
+		while ((read = getline(&line, &len, fp)) != -1)
+			array_add(&source_lines, line_reindent(line));
+	}
 
 	/* Set base name. */
 	tmp = basename((char *)filename);
@@ -199,7 +238,7 @@ int line_read_source(const char *filename)
  * @brief Free all the allocated resources for line usage,
  * including the array lines and base_file_name.
  */
-void line_free_source(void)
+void line_free_source(int highlight)
 {
 	size_t size; /* Amout of lines. */
 
@@ -208,12 +247,23 @@ void line_free_source(void)
 		return;
 
 	size = array_size(&source_lines);
-	for (size_t i = 0; i < size; i++)
+
+	if (highlight)
 	{
-		char *line;
-		line = array_remove(&source_lines, 0, NULL);
-		free(line);
+		for (size_t i = 0; i < size; i++)
+		{
+			free( array_remove(&source_lines, 0, NULL) );
+			highlight_free(
+				array_remove(&source_lines_highlighted, 0, NULL) );
+		}
+		array_finish(&source_lines_highlighted);
 	}
+	else
+	{
+		for (size_t i = 0; i < size; i++)
+			free( array_remove(&source_lines, 0, NULL) );
+	}
+
 	array_finish(&source_lines);
 
 	/* Free the base name. */
@@ -309,7 +359,13 @@ void line_detailed_printer(int depth, unsigned line_no,
 	struct dw_variable *v, union var_value *v_before,
 	union var_value *v_after, int *array_idxs)
 {
-	char *line = array_get(&source_lines, line_no - 1, NULL);
+	struct array *line_ptr;
+	char *line;
+	size_t size;
+
+	line_ptr = source_lines;
+	line = array_get(&line_ptr, line_no - 1, NULL);
+	size = array_size(&line_ptr);
 
 	/*
 	 * The line alignment is pretty trickier, it takes:
@@ -328,40 +384,96 @@ void line_detailed_printer(int depth, unsigned line_no,
 		(log10(line_no) + 1)                       +
 		4;
 
-	/* If base type. */
-	if (v->type.var_type & (TBASE_TYPE|TENUM|TPOINTER))
+	/* Read highlighted line if available. */
+	if (source_lines_highlighted != NULL)
 	{
-		fn_printf(depth, 0, "[%s:%d]:%s", base_file_name, line_no, line);
-
-		fn_printf(depth, predicted_offset,
-			"^----- (%s) before: %s, after: %s\n\n",
-			v->name,
-			var_format_value(before, v_before, v->type.encoding, v->byte_size),
-			var_format_value(after,  v_after, v->type.encoding, v->byte_size)
-		);
+		line = array_get(&source_lines_highlighted, line_no - 1, NULL);
+		line_ptr = source_lines_highlighted;
 	}
 
-	/* If array. */
-	else if (v->type.var_type == TARRAY)
+	/* If base type. */
+	if (v->type.var_type & (TBASE_TYPE|TENUM|TPOINTER|TARRAY))
 	{
+		int start;
+		int end;
+
+		/* Print lines before. */
+		if (args.context)
+		{
+			printf("----------------------------------------------------------"
+				"---------------------\n");
+
+			if (line_no - args.context > 0)
+				start = line_no - args.context - 1;
+			else
+				start = 0;
+
+			end = line_no - 1;
+
+			while (start < end)
+			{
+				fn_printf(depth, 0, "[%s:%d]:%s", base_file_name, start+1,
+					array_get(&line_ptr, start, NULL));
+				start++;
+			}
+		}
+
+		/* Line changed. */
 		fn_printf(depth, 0, "[%s:%d]:%s", base_file_name, line_no, line);
 
-		fn_printf(depth, predicted_offset,
-			"^----- (%s",
-			v->name,
-			var_format_value(before, v_before, v->type.encoding, v->byte_size),
-			var_format_value(after,  v_after, v->type.encoding, v->byte_size)
-		);
+		/* If not array, lets proceed normally. */
+		if (v->type.var_type != TARRAY)
+		{
+			fn_printf(depth, predicted_offset,
+				"^----- (%s) before: %s, after: %s\n",
+				v->name,
+				var_format_value(before, v_before, v->type.encoding, v->byte_size),
+				var_format_value(after,  v_after, v->type.encoding, v->byte_size)
+			);
+		}
 
-		for (int j = 0; j < v->type.array.dimensions; j++)
-			printf("[%d]", array_idxs[j]);
+		/* If array, we also need to print the indexes. */
+		else
+		{
+			fn_printf(depth, predicted_offset,
+				"^----- (%s",
+				v->name,
+				var_format_value(before, v_before, v->type.encoding, v->byte_size),
+				var_format_value(after,  v_after, v->type.encoding, v->byte_size)
+			);
 
-		printf("), before: %s, after: %s\n\n",
-			var_format_value(before, v_before, v->type.encoding,
-				v->type.array.size_per_element),
+			for (int j = 0; j < v->type.array.dimensions; j++)
+				printf("[%d]", array_idxs[j]);
 
-			var_format_value(after,  v_after, v->type.encoding,
-				v->type.array.size_per_element)
-		);
+			printf("), before: %s, after: %s\n",
+				var_format_value(before, v_before, v->type.encoding,
+					v->type.array.size_per_element),
+
+				var_format_value(after,  v_after, v->type.encoding,
+					v->type.array.size_per_element)
+			);
+		}
+
+		/* Print lines after. */
+		if (args.context)
+		{
+
+			if (line_no + args.context <= size)
+				end = line_no + args.context;
+			else
+				end = size - 1;
+
+			start = line_no;
+			while (start < end)
+			{
+				fn_printf(depth, 0, "[%s:%d]:%s", base_file_name, start+1,
+					array_get(&line_ptr, start, NULL));
+				start++;
+			}
+
+			printf("----------------------------------------------------------"
+				"---------------------\n\n");
+		}
+		printf("\n");
 	}
 }

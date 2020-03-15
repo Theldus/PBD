@@ -30,6 +30,7 @@
 #include "variable.h"
 #include "hashtable.h"
 #include "line.h"
+#include "highlight.h"
 
 #define OPTPARSE_IMPLEMENTATION
 #include "optparse.h"
@@ -57,7 +58,10 @@ static struct array *context;
 static char *filename;
 
 /* Arguments list. */
-struct args args = {0,{0,0},0,0,0};
+struct args args = {0,0,{0,0},0,0,0,0};
+
+/* Forward definition. */
+extern int str2int(int *out, char *s);
 
 /**
  * @brief Parses all the lines and variables for the target
@@ -98,10 +102,12 @@ int setup(const char *file, const char *function)
 	/* Should we read the source?. */
 	if (args.flags & FLG_SHOW_LINES)
 	{
-		if (line_read_source(filename))
+		if (line_read_source(filename,
+			args.flags & FLG_SYNTAX_HIGHLIGHT,
+			args.theme_file))
 		{
-			fprintf(stderr, "PBD: Source code %s not found, please check if the file "
-				"exists in your system!\n", filename);
+			fprintf(stderr, "PBD: Source code/theme file %s not found, please\n"
+				"check if the file exists in your system!\n", filename);
 			finish();
 			exit(EXIT_FAILURE);
 		}
@@ -134,7 +140,7 @@ void finish(void)
 
 	/* Deallocate lines and filename. */
 	dw_lines_array_free(lines);
-	line_free_source();
+	line_free_source(args.flags & FLG_SYNTAX_HIGHLIGHT);
 	free(filename);
 
 	/* Deallocate breakpoints. */
@@ -143,6 +149,10 @@ void finish(void)
 	/* Deallocate watch or ignore list, if available. */
 	if (args.iw_list.ht_list != NULL)
 		hashtable_finish(&args.iw_list.ht_list, 1);
+
+	/* Deallocate theme file, if any. */
+	if (args.theme_file != NULL)
+		free(args.theme_file);
 }
 
 /**
@@ -359,16 +369,35 @@ static void dump_all(const char *prg_name)
  */
 void usage(int retcode, const char *prg_name)
 {
+	/* Deallocate maybe allocated resources. */
+	if (args.iw_list.list != NULL)
+		free(args.iw_list.list);
+	if (args.theme_file != NULL)
+		free(args.theme_file);
+
+	/* Show options. */
 	printf("Usage: %s [options] executable function_name [executable_options]\n",
 		prg_name);
 	printf("Options:\n");
-	printf("  -h --help          Display this information\n");
-	printf("  -v --version       Display the PBD version\n");
-	printf("  -s --show-lines    Shows the debugged source code portion in the output\n");
+	printf("  -h --help           Display this information\n");
+	printf("  -v --version        Display the PBD version\n");
+	printf("  -s --show-lines     Shows the debugged source code portion in the output\n");
+	printf("  -x --context <num>  Shows num lines before and after the code portion.\n");
+	printf("                      This option is meant to be used in conjunction with\n");
+	printf("                      -s option\n");
+	printf("\n");
 	printf("  -l --only-locals   Monitors only local variables (default: global + local)\n");
 	printf("  -g --only-globals  Monitors only global variables (default: global + local)\n");
 	printf("  -i --ignore-list <var1, ...> Ignores a specified list of variables names\n");
 	printf("  -w --watch-list  <var1, ...> Monitors a specified list of variables names\n");
+
+	printf("\nSyntax highlighting options:\n");
+	printf("  -c --color                 Enables syntax highlight, this option only takes\n");
+	printf("                             effect while used together with --show-lines, Also\n");
+	printf("                             note that this option requires a 256-color\n");
+	printf("                             compatible terminal\n");
+	printf("\n");
+	printf("  -t  --theme <theme-file>   Select a theme file for the highlighting\n");
 
 	printf("\nNotes:\n");
 	printf("  - Options -i and -w are mutually exclusive!\n\n");
@@ -395,7 +424,7 @@ static void version(void)
 {
 	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
 		RLSE_VERSION);
-	printf("MIT License - Copyright (C) 2019 Davidson Francis\n");
+	printf("MIT License - Copyright (C) 2019-2020 Davidson Francis\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -464,10 +493,13 @@ static void readargs(int argc, char **argv)
 		{"version",                'v',     OPTPARSE_NONE},
 		{"help",                   'h',     OPTPARSE_NONE},
 		{"show-lines",             's',     OPTPARSE_NONE},
+		{"context",                'x', OPTPARSE_REQUIRED},
 		{"only-locals",            'l',     OPTPARSE_NONE},
 		{"only-globals",           'g',     OPTPARSE_NONE},
 		{"ignore-list",            'i', OPTPARSE_REQUIRED},
 		{"watch-list",             'w', OPTPARSE_REQUIRED},
+		{"color",                  'c',     OPTPARSE_NONE},
+		{"theme",                  't', OPTPARSE_REQUIRED},
 		{"dump-all",               'd',     OPTPARSE_NONE},
 		{"avoid-equal-statements", 255,     OPTPARSE_NONE},
 		{0,0,0}
@@ -486,6 +518,15 @@ static void readargs(int argc, char **argv)
 				break;
 			case 's':
 				args.flags |= FLG_SHOW_LINES;
+				break;
+			case 'x':
+				if (str2int(&args.context, options.optarg) < 0 || args.context < 0)
+				{
+					fprintf(stderr, "%s: --context: number (%s) cannot be "
+						"parsed!\n", argv[0], options.optarg);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				printf("num: |%d|\n", args.context);
 				break;
 			case 'l':
 				args.flags |= FLG_ONLY_LOCALS;
@@ -527,6 +568,18 @@ static void readargs(int argc, char **argv)
 
 				strcpy(args.iw_list.list, options.optarg);
 				break;
+			case 'c':
+				args.flags |= FLG_SYNTAX_HIGHLIGHT;
+				break;
+			case 't':
+				if (args.theme_file != NULL)
+					free(args.theme_file);
+
+				args.theme_file = malloc(sizeof(char) *
+					(strlen(options.optarg) + 1));
+
+				strcpy(args.theme_file, options.optarg);
+				break;
 			case 'd':
 				args.flags |= FLG_DUMP_ALL;
 				break;
@@ -537,6 +590,30 @@ static void readargs(int argc, char **argv)
 				fprintf(stderr, "%s: %s\n\n", argv[0], options.errmsg);
 				usage(EXIT_FAILURE, argv[0]);
 		}
+	}
+
+	/* Enable syntax highlight?. */
+	if ((args.flags & FLG_SYNTAX_HIGHLIGHT) && !(args.flags & FLG_SHOW_LINES))
+	{
+		fprintf(stderr, "%s: option -c only work if used"
+			" together with -s!\n\n", argv[0]);
+		usage(EXIT_FAILURE, argv[0]);
+	}
+
+	/* Custom theme?. */
+	if ((args.theme_file != NULL) && !(args.flags & FLG_SYNTAX_HIGHLIGHT))
+	{
+		fprintf(stderr, "%s: option -t only works if used"
+			" together with -s _and_ -c!\n\n", argv[0]);
+		usage(EXIT_FAILURE, argv[0]);
+	}
+
+	/* Check if context enabled. */
+	if (args.context != 0 && !(args.flags & FLG_SHOW_LINES))
+	{
+		fprintf(stderr, "%s: option -x only work if used"
+			" together with -s!\n\n", argv[0]);
+		usage(EXIT_FAILURE, argv[0]);
 	}
 
 	/* Print remaining arguments. */

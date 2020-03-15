@@ -31,13 +31,14 @@
 	#define RLSE_VERSION ""
 
 	/* Arguments flags. */
-	#define FLG_SHOW_LINES   0x01
-	#define FLG_ONLY_LOCALS  0x02
-	#define FLG_ONLY_GLOBALS 0x04
-	#define FLG_IGNR_LIST    0x08
-	#define FLG_WATCH_LIST   0x10
-	#define FLG_DUMP_ALL     0x20
-	#define FLG_IGNR_EQSTAT  0x40
+	#define FLG_SHOW_LINES       0x01
+	#define FLG_ONLY_LOCALS      0x02
+	#define FLG_ONLY_GLOBALS     0x04
+	#define FLG_IGNR_LIST        0x08
+	#define FLG_WATCH_LIST       0x10
+	#define FLG_DUMP_ALL         0x20
+	#define FLG_IGNR_EQSTAT      0x40
+	#define FLG_SYNTAX_HIGHLIGHT 0x80
 
 	/* Experimental features.
 	 *
@@ -50,6 +51,7 @@
 	struct args
 	{
 		uint8_t flags;
+		int context;
 		struct iw_list
 		{
 			char *list;
@@ -57,6 +59,7 @@
 		} iw_list;
 		char *executable;
 		char *function;
+		char *theme_file;
 		char **argv;
 	};
 

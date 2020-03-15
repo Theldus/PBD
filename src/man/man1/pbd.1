@@ -20,7 +20,7 @@
 .\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
 .\"
-.TH "PBD" "1" "2019-12-07" "v0.5" "pbd man page"
+.TH "PBD" "1" "2020-03-14" "v0.5" "pbd man page"
 .SH NAME
 pbd \- Printf Based Debugger
 .SH SYNOPSIS
@@ -44,6 +44,9 @@ Display the PBD version and copyright.
 .IP "-s --show-lines"
 Prints the line and line number of the code that was changed. By default,
 only the line number is printed.
+.IP "-x --context <num>"
+Shows <num> lines before and after the code portion. This option is meant
+to be used in conjunction with -s.
 .IP "-l --only-locals"
 Monitors only local variables (default: global + local)
 .IP "-g --only-globals"
@@ -54,6 +57,14 @@ whether local or global. Options -i and -w are mutually exclusive.
 .IP "-w --watch-list=var1,var2..."
 Given a comma separated sequence of variables names, PBD will only watch them,
 whether local or global. Options -i and -w are mutually exclusive.
+.PP
+Syntax highlighting options:
+.IP "-c --color"
+Enables syntax highlight. This option only takes effect if used together with
+--show-lines. Note that this option also requires a 256-color compatible
+terminal.
+.IP "-t --theme <theme-file>"
+Select a theme file for the highlighting.
 .PP
 The following options are for PBD internals:
 .IP "-d --dump-all"
@@ -109,8 +120,6 @@ C Features:
 Currently PBD lacks the following features from C language, and thus, they will
 not be analyzed if present:
 .RS 2
-.IP \(em 2
-Enumerations
 .IP \(em 2
 Structures
 .IP \(em 2

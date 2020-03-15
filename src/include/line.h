@@ -46,9 +46,10 @@
 		struct dw_variable *v, union var_value *v_before,
 		union var_value *v_after, int *array_idxs);
 
-	extern int line_read_source(const char *filename);
+	extern int line_read_source(const char *filename, int highlight,
+		char *theme_file);
 
-	extern void line_free_source(void);
+	extern void line_free_source(int highlight);
 
 	extern void line_null_printer(int depth, unsigned line_no,
 		struct dw_variable *v, union var_value *v_before,
