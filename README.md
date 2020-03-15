@@ -29,18 +29,29 @@ primitive types, pointers* and arrays up to 8 dimensions (`[][][][][]`....). For
 supported type, PBD will monitor and print on the screen the old and new values as
 soon as the variable gets changed.
 
-PBD also allows the user to track only globals, only locals and/or selectively
-watch/ignore a predefined variables list, as can be seen from the help menu:
+PBD also allows the user to track only globals, only locals, selectively watch/ignore
+a predefined variables list, show lines with context and with syntax highlighting
+(with themes support):
 ```
-Usage: pbd [options] executable function_name [executable_options]
+Usage: ./pbd [options] executable function_name [executable_options]
 Options:
-  -h --help          Display this information
-  -v --version       Display the PBD version
-  -s --show-lines    Shows the debugged source code portion in the output
+  -h --help           Display this information
+  -v --version        Display the PBD version
+  -s --show-lines     Shows the debugged source code portion in the output
+  -x --context <num>  Shows num lines before and after the code portion. This option is meant to
+                      be used in conjunction with -s option
+
   -l --only-locals   Monitors only local variables (default: global + local)
   -g --only-globals  Monitors only global variables (default: global + local)
   -i --ignore-list <var1, ...> Ignores a specified list of variables names
   -w --watch-list  <var1, ...> Monitors a specified list of variables names
+
+Syntax highlighting options:
+  -c --color                 Enables syntax highlight, this option only takes effect while used
+                             together with --show-lines, Also note that this option requires a
+                             256-color compatible terminal
+
+  -t  --theme <theme-file>   Select a theme file for the highlighting
 
 Notes:
   - Options -i and -w are mutually exclusive!
@@ -50,6 +61,15 @@ Notes:
 
 The following options are for PBD internals:
   -d --dump-all    Dump all information gathered by the executable
+
+
+'Unsafe' options:
+  The options below are meant to be used with caution, since they could lead
+  to wrong output.
+
+  --avoid-equal-statements  If enabled, PBD will ignore all line statements that are 'duplicated',
+                            i.e: belongs to the same liner number, regardless its address.
+
 ```
 
 ## Speed
@@ -113,7 +133,6 @@ Supports x86_64 only. I have plans to support x86 in the future as well. As for 
 ### C Features
 PBD lacks the following C features:
 - Structs / Unions [(#3)](https://github.com/Theldus/PBD/issues/3)
-- Enums [(#2)](https://github.com/Theldus/PBD/issues/2)
 - Pointers* [(#5)](https://github.com/Theldus/PBD/issues/5)
 
 Pointer support is partially supported: PBD will monitor only the value of the pointer, rather
@@ -123,8 +142,8 @@ follow the implementation progress.
 Any input on one of these points is most welcome, ;-).
 
 ## Installing
-### Pre-build packages
-You can also check for static pre-build binaries in the
+### Pre-built packages
+You can check for static pre-built binaries in the
 [releases](https://github.com/Theldus/PBD/releases) page.
 
 ### Build from source
