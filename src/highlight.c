@@ -809,20 +809,21 @@ int str2int(int *out, char *s)
  */
 int highlight_init(const char *theme_file)
 {
-	int num;
-	int idx;
-	FILE *fp;
-	char *file;
-	char *str_num;
-	size_t kw_size;
-	long file_size;
+	int num;        /* Integer color.        */
+	int idx;        /* Color vector index.   */
+	FILE *fp;       /* File pointer.         */
+	char *file;     /* File buffer.          */
+	char *str_num;  /* String number buffer. */
+	size_t kw_size; /* Keyword size.         */
+	long file_size; /* Theme file size.      */
 
 	kw_size = sizeof(keywords_list)/sizeof(struct keyword);
 
 	/* Configure themes. */
 	if (theme_file != NULL)
 	{
-		char *p; /* strtok pointer. */
+		char *p;  /* strtok pointer. */
+		idx = 0;
 
 		fp = fopen(theme_file, "r");
 		if (fp == NULL)
@@ -839,12 +840,20 @@ int highlight_init(const char *theme_file)
 
 		/* Allocate and read the file. */
 		file = malloc(sizeof(char) * (file_size+1));
-		fread(file, file_size, 1, fp);
+		if (fread(file, file_size, 1, fp) != 1)
+		{
+			fprintf(stderr, "highlight: an error has ocurred while"
+				" trying to read %s!\n", theme_file);
+
+			free(file);
+			fclose(fp);
+			return (-1);
+		}
+
 		file[file_size] = '\0';
 		p = file;
 
 		/* Parse each number. */
-		idx = 0;
 		for (str_num = strtok(p, ", \t\n"); str_num != NULL && idx < 8;
 			str_num = strtok(NULL, ", \t\n"), idx++ )
 		{
