@@ -1,5 +1,6 @@
 # PBD <img width="100" align="right" src="https://i.imgur.com/YOpi5Pu.png"/>
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Build Status](https://travis-ci.com/Theldus/PBD.svg?branch=master)](https://travis-ci.com/Theldus/PBD)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/450c403f49794de483759f77c8ad8921)](https://www.codacy.com/manual/Theldus/PBD?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Theldus/PBD&amp;utm_campaign=Badge_Grade)
 
 PBD is a C debugger for Linux systems, which aims to monitor all global and
 local variables (of a specific function) and nicely print the old/new values on
