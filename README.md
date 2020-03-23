@@ -17,8 +17,8 @@ user. Like most debuggers, PBD is an _external debugger_ and therefore does not
 require any changes to the source code nor does binary instrumentation.
 
 <p align="center">
-<a href="https://asciinema.org/a/283214" target="_blank">
-<img align="center" src="https://asciinema.org/a/283214.svg" alt="PBD example">
+<a href="https://asciinema.org/a/312880" target="_blank">
+<img align="center" src="https://asciinema.org/a/312880.svg" alt="PBD example">
 <br>
 PBD example
 </p>
