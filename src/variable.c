@@ -30,6 +30,10 @@
 #include "function.h"
 #include "line.h"
 
+/* Offset memcmp pointer. */
+int64_t (*offmemcmp)(
+	void *src, void *dest, size_t block_size, size_t length);
+
 /**
  * @brief Dump all variables found in the target function.
  *
@@ -184,8 +188,8 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
  *
  * @param v1 First memory block to be compared.
  * @param v2 Second memory block to be compared.
- * @param n Memory block size.
  * @param block_size Size per element.
+ * @param n Memory block size.
  *
  * @return Returns the byte offset of the change (0 inclusive), or -1 if
  * there is no change.
@@ -194,7 +198,8 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
  * sensitive and is unlikely to work on big-endian targets. Since PBD
  * only supports x86_64 (at the moment), this should not be a problem.
  */
-static int var_memcmp(const void *v1, const void *v2, size_t n, size_t block_size)
+int64_t offmemcmp_generic(void *v1, void *v2,
+	size_t block_size, size_t n)
 {
 	const uint64_t *u64p1; /* 8-byte pointer, first memory block.  */
 	const uint64_t *u64p2; /* 8-byte pointer, second memory block. */
@@ -615,10 +620,10 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 			if (v->type.array.var_type & (TBASE_TYPE|TENUM|TPOINTER))
 			{
 				int changed;             /* Variable status.  */
-				char *v1, *cmp1;    /* Variable old.     */
-				char *v2, *cmp2;    /* Variable new.     */
+				char *v1, *cmp1;         /* Variable old.     */
+				char *v2, *cmp2;         /* Variable new.     */
 				size_t size_per_element; /* Size per element. */
-				int byte_offset;         /* Byte offset.      */
+				int64_t byte_offset;     /* Byte offset.      */
 				size_t size;
 
 				/* Read and compares its value. */
@@ -635,7 +640,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 				cmp1 = v1;
 				cmp2 = v2;
 				while ( ((size_t)(cmp1 - v1)) < v->byte_size
-					&& (byte_offset = var_memcmp(cmp1, cmp2, size, size_per_element)) >= 0 )
+					&& (byte_offset = offmemcmp(cmp1, cmp2, size_per_element, size)) >= 0 )
 				{
 					union var_value value1;
 					union var_value value2;

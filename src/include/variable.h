@@ -31,6 +31,14 @@
 	#include "function.h"
 	#include  <sys/types.h>
 
+	/* Offset memcmp pointer. */
+	int64_t (*offmemcmp)(
+		void *src, void *dest, size_t block_size, size_t length);
+
+	/* External declarations. */
+	extern int64_t offmemcmp_generic(void *v1,  void *v2,
+		size_t block_size, size_t n);
+
 	extern void var_dump(struct array *vars);
 
 	extern char *var_format_value(char *buffer, union var_value *v,

@@ -32,21 +32,49 @@ CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF)
 CFLAGS  += -std=c99 -g -O3
 LDFLAGS  = -ldwarf -lm
 
-C_SRC = $(wildcard *.c)
-OBJ = $(C_SRC:.c=.o)
-
 # Machine architecture
 ARCH := $(shell uname -m)
 ifneq ($(ARCH), x86_64)
 $(error PBD currently only supports x86_64 architecture!)
 endif
 
+INCLUDE += -I $(CURDIR)/arch/$(ARCH)/
+C_SRC =  $(wildcard *.c)
+C_SRC += $(wildcard arch/$(ARCH)/*.c)
+
+# Conditionally add ASM files to the identified arch
+ifeq ($(ARCH), x86_64)
+	AVX2_SUPPORT := $(shell printf "vpcmpeqb %%ymm1, %%ymm1, %%ymm1\n" \
+		| if (gcc -x assembler -c -o .avx2.o -) &>/dev/null;           \
+			then            \
+				echo "yes"; \
+			else            \
+				echo "no";  \
+			fi;             \
+			rm .avx2.o 2> /dev/null)
+
+	ifeq ($(AVX2_SUPPORT), yes)
+		CFLAGS += -DCAN_BUILD_AVX2
+		ASM_SRC += $(wildcard arch/x86_64/*.S)
+	else
+		ASM_SRC += $(wildcard arch/x86_64/sse2.S)
+	endif
+endif
+
+OBJ =  $(C_SRC:.c=.o)
+OBJ += $(ASM_SRC:.S=.o)
+
 # Paths
 PREFIX ?= /usr/local
 BINDIR  = $(PREFIX)/bin
 MANDIR  = $(PREFIX)/man
 
+# C Files
 %.o: %.c
+	$(CC) $< $(CFLAGS) -c -o $@
+
+# ASM Files
+%.o: %.S
 	$(CC) $< $(CFLAGS) -c -o $@
 
 all: pbd

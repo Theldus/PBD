@@ -23,6 +23,7 @@
  */
 
 #include "breakpoint.h"
+#include "cpudisp.h"
 #include "dwarf_helper.h"
 #include "function.h"
 #include "ptrace.h"
@@ -655,6 +656,9 @@ int main(int argc, char **argv)
 		printf("%s: executable and/or function name not found!\n\n", argv[0]);
 		usage(EXIT_FAILURE, argv[0]);
 	}
+
+	/* CPU dispatcher. */
+	select_cpu();
 
 	/* Analyze. */
 	do_analysis(args.executable, args.function, args.argv);
