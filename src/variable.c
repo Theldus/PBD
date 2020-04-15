@@ -659,7 +659,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 					/* If one dimension. */
 					if (v->type.array.dimensions == 1)
 					{
-						index_per_dimension[0] = byte_offset / size_per_element;
+						index_per_dimension[0] = (cmp1 - v1) / size_per_element;
 
 						/* Output changes using the current printer. */
 						line_output(depth, b->line_no, v, &value1, &value2,
@@ -672,7 +672,7 @@ void var_check_changes(struct breakpoint *b, struct array *vars, pid_t child, in
 						int div;
 						int idx_dim;
 
-						div = byte_offset / size_per_element;
+						div = (cmp1 - v1) / size_per_element;
 						idx_dim = v->type.array.dimensions - 1;
 
 						/* Calculate indexes. */
