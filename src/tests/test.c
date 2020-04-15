@@ -23,6 +23,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <inttypes.h>
 
 /*
@@ -94,6 +95,9 @@ int func1(int func1_local_argument1)
 		array1dim[i] = i+1;
 
 	array1dim[9] += 9;
+
+	/* Fill test. */
+	memset(array1dim, 5, sizeof(array1dim));
 
 	/* Array multiple dimension test. */
 	array10x10[5][7][6]++;
