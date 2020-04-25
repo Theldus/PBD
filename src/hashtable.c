@@ -582,7 +582,7 @@ void hashtable_print_stats(struct hashtable **ht)
 	h = *ht;
 
 	/* If valid hashtable. */
-	if (h == NULL && h->elements < 1)
+	if (h == NULL || h->elements < 1)
 		return;
 
 #if DUMP_BUCKET
