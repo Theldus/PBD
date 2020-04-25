@@ -44,7 +44,10 @@ int array_init(struct array **array)
 	out->elements = 0;
 	out->buf = calloc(out->capacity, sizeof(void *));
 	if (out->buf == NULL)
+	{
+		free(out);
 		return (-1);
+	}
 
 	*array = out;
 	return (0);
