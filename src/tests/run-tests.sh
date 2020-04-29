@@ -36,8 +36,8 @@ echo -n "Tests..."
 
 # Run iterative and recursive tests
 {
-	$PBD_FOLDER/pbd test func1     > test_func1_out &&\
-	$PBD_FOLDER/pbd test factorial
+	"$PBD_FOLDER"/pbd test func1     > test_func1_out &&\
+	"$PBD_FOLDER"/pbd test factorial
 } &> /dev/null
 
 if [ $? -eq 0 ]
@@ -59,9 +59,9 @@ then
 
 			{
 				valgrind --leak-check=full --error-exitcode=1\
-					$PBD_FOLDER/pbd test func1 &&\
+					"$PBD_FOLDER"/pbd test func1 &&\
 				valgrind --leak-check=full --error-exitcode=1\
-					$PBD_FOLDER/pbd test factorial
+					"$PBD_FOLDER"/pbd test factorial
 			} &> /dev/null
 
 			if [ $? -eq 0 ]
