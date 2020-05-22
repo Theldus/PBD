@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
+# Copyright (c) 2019-2020 Davidson Francis <davidsondfgl@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -79,8 +79,16 @@ MANDIR  = $(PREFIX)/man
 
 all: pbd
 
+# Sparse library
+sparse/libsparse.a: sparse/Makefile
+	$(MAKE) -C sparse/ HAVE_SQLITE=no libsparse.a
+
+sparse/Makefile:
+	$(warning Sparse submodule not fetched, fetching...)
+	git submodule update --init
+
 # Main program
-pbd: $(OBJ)
+pbd: $(OBJ) sparse/libsparse.a
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
 # Tests
@@ -110,3 +118,4 @@ clean:
 	@rm -f $(OBJ) pbd
 	@$(MAKE) clean -C tests/
 	@$(MAKE) clean -C benchs/
+	@$(MAKE) clean -C sparse/
