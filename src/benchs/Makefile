@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
+# Copyright (c) 2019-2020 Davidson Francis <davidsondfgl@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -52,16 +52,25 @@ endif
 C_SRC = $(wildcard *.c)
 OBJ = $(C_SRC:.c=.o)
 
+# Pretty print
+Q := @
+ifeq ($(V), 1)
+	Q :=
+endif
+
 %.o: %.c
-	$(CC) $< $(CFLAGS) -c -o $@
+	@echo "  CC      $@"
+	$(Q)$(CC) $< $(CFLAGS) -c -o $@
 
 all: bench run_benchs
 
 bench: $(OBJ)
-	$(CC) $^ $(CFLAGS) -o $@
+	@echo "  LD      $@"
+	$(Q)$(CC) $^ $(CFLAGS) -o $@
 
 run_benchs: bench
 	@bash run-benchs.sh
 
 clean:
+	@echo "  CLEAN"
 	@rm -f $(OBJ) bench

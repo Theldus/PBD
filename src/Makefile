@@ -69,13 +69,21 @@ PREFIX ?= /usr/local
 BINDIR  = $(PREFIX)/bin
 MANDIR  = $(PREFIX)/man
 
+# Pretty print
+Q := @
+ifeq ($(V), 1)
+	Q :=
+endif
+
 # C Files
 %.o: %.c
-	$(CC) $< $(CFLAGS) -c -o $@
+	@echo "  CC      $@"
+	$(Q)$(CC) $< $(CFLAGS) -c -o $@
 
 # ASM Files
 %.o: %.S
-	$(CC) $< $(CFLAGS) -c -o $@
+	@echo "  CC      $@"
+	$(Q)$(CC) $< $(CFLAGS) -c -o $@
 
 all: pbd
 
@@ -89,7 +97,8 @@ sparse/Makefile:
 
 # Main program
 pbd: $(OBJ) sparse/libsparse.a
-	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
+	@echo "  LD      $@"
+	$(Q)$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
 # Tests
 test: pbd
@@ -115,6 +124,7 @@ uninstall:
 	rm -f $(DESTDIR)$(MANDIR)/man1/pbd.1.gz
 
 clean:
+	@echo "  CLEAN"
 	@rm -f $(OBJ) pbd
 	@$(MAKE) clean -C tests/
 	@$(MAKE) clean -C benchs/
