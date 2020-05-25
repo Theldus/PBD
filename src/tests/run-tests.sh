@@ -58,9 +58,18 @@ then
 			echo -n "Valgrind tests..."
 
 			{
-				valgrind --leak-check=full --error-exitcode=1\
+				valgrind\
+					--leak-check=full\
+					--suppressions=pbd.supp\
+					--errors-for-leak-kinds=all\
+					--error-exitcode=1\
 					"$PBD_FOLDER"/pbd test func1 &&\
-				valgrind --leak-check=full --error-exitcode=1\
+
+				valgrind\
+					--leak-check=full\
+					--suppressions=pbd.supp\
+					--errors-for-leak-kinds=all\
+					--error-exitcode=1\
 					"$PBD_FOLDER"/pbd test factorial
 			} &> /dev/null
 
