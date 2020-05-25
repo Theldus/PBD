@@ -25,6 +25,7 @@
 #include "line.h"
 #include "array.h"
 #include "highlight.h"
+#include "dwarf_helper.h"
 #include "pbd.h"
 #include <ctype.h>
 #include <libgen.h>
@@ -52,6 +53,24 @@ void (*line_output)(
 
 /* Base file name. */
 char *base_file_name = NULL;
+
+/**
+ * @brief Compares two lines accordingly with the
+ * line number and returns if there is a difference.
+ *
+ * @param a First line.
+ * @param b Second line.
+ *
+ * @return Returns a negative, integer or zero if the first
+ * line is less than, equal to, or greater than the second
+ * line.
+ */
+int line_cmp(const void *a, const void *b)
+{
+	struct dw_line *l1 = *(void **)a;
+	struct dw_line *l2 = *(void **)b;
+	return ((int)l1->line_no - (int)l2->line_no);
+}
 
 /**
  * @brief Check if the parameter @p c is a valid variable
