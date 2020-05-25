@@ -72,6 +72,87 @@ int hashtable_init(
 }
 
 /**
+ * @brief Initializes the hashtable iterator.
+ *
+ * @param ht Hashtable structure pointer.
+ * @param Hashtable iterator structure pointer.
+ *
+ * @return Returns 0 if success and a negative number
+ * otherwise.
+ */
+int hashtable_iter_init(
+	struct hashtable **ht,
+	struct hashtable_iter *it)
+{
+	struct hashtable *h; /* Hashtable. */
+
+	h = *ht;
+
+	/* Invalid hashtable. */
+	if (h == NULL)
+		return (-1);
+
+	/* Populate. */
+	it->ht = h;
+	it->bucket_index = 0;
+	it->next = NULL;
+
+	/* Fill the first position. */
+	for (size_t i = 0; i < h->capacity; i++)
+	{
+		struct list *l_ptr = h->bucket[i];
+		if (l_ptr != NULL)
+		{
+			it->next = l_ptr;
+			it->bucket_index = i;
+			break;
+		}
+	}
+	return (0);
+}
+
+/**
+ * @brief Gets the next element in the hashtable.
+ *
+ * @param it Hashtable iterator structure.
+ * @param li Hashtable item pointer.
+ *
+ * @return Returns 0 if success and a negative number
+ * otherwise.
+ */
+int hashtable_iter_next(
+	struct hashtable_iter *it,
+	struct list **li)
+{
+	/* Valid iterator and hashtable. */
+	if (it == NULL || it->ht == NULL)
+		return (-1);
+
+	/* If there is next element. */
+	if (it->next)
+	{
+		*li = it->next;
+		it->next = it->next->next;
+		return (0);
+	}
+
+	/* If not, let us search through the buckets. */
+	for (size_t i = it->bucket_index + 1; i < it->ht->capacity; i++)
+	{
+		struct list *l_ptr = it->ht->bucket[i];
+		if (l_ptr != NULL)
+		{
+			*li = l_ptr;
+			it->next = l_ptr->next;
+			it->bucket_index = i;
+			return (0);
+		}
+	}
+
+	return (-1);
+}
+
+/**
  * @brief Deallocates the hashtable.
  *
  * @param ht Hashtable pointer.
@@ -87,7 +168,7 @@ int hashtable_finish(struct hashtable **ht, int dealloc)
 
 	h = *ht;
 
-	/* Invalid array. */
+	/* Invalid hashtable. */
 	if (h == NULL)
 		return (-1);
 
@@ -660,6 +741,7 @@ static int hashtable_integritytest(struct hashtable *ht)
 {
 	int *numbers; /* Numbers pointer.     */
 	int *num;     /* Number poniter.      */
+	int *key;     /* Hashtable key.       */
 
 	/* Allocate a ARRAY_SIZE elements vector. */
 	numbers = malloc(sizeof(int) * ARRAY_SIZE);
@@ -700,6 +782,34 @@ static int hashtable_integritytest(struct hashtable *ht)
 			goto out1;
 		}
 	}
+
+	/* Checks if the iterator works as expected. */
+	HASHTABLE_FOREACH(ht, key, num,
+	{
+		int l, r, m;
+		l = 0;
+		r = ARRAY_SIZE - 1;
+
+		/* Binary search, in order to confirm if the number
+		 * really exists in the original array. */
+		while (l <= r)
+		{
+			m = (r + l) / 2;
+			if (numbers[m] < *num)
+				l = m + 1;
+			else if (numbers[m] > *num)
+				r = m - 1;
+			else
+				break;
+		}
+
+		/* If not found. */
+		if (l > r)
+		{
+			fprintf(stderr, "hashtable: error, num: %d not found!!\n", *num);
+			goto out1;
+		}
+	});
 
 	/* --------------------------- Some stats --------------------------- */
 	hashtable_print_stats(&ht);

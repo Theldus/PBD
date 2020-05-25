@@ -40,6 +40,27 @@
 	#define HASHTABLE_DEBUG 1
 
 	/**
+	 * Hashtable foreach.
+	 *
+	 * @note This is 'unguarded commas-proof', because we're using varargs
+	 * here and all the arguments will be expanded as expected =).
+	 *
+	 * More info here: https://mort.coffee/home/obscure-c-features/
+	 */
+	#define HASHTABLE_FOREACH(hashtable, key_424242, value_424242, ...)\
+		{\
+			struct hashtable_iter iter_424242;            \
+			struct list *list_424242;                     \
+			hashtable_iter_init(&hashtable, &iter_424242);  \
+			while (hashtable_iter_next(&iter_424242, &list_424242) != -1) \
+			{\
+				key_424242 = list_424242->key;     \
+				value_424242 = list_424242->value; \
+				__VA_ARGS__                        \
+			}\
+		}
+
+	/**
 	 * @brief Hashtable linked list structure.
 	 */
 	struct list
@@ -69,12 +90,26 @@
 		int (*cmp) (const void *key1, const void *key2);
 	};
 
+	/**
+	 * @brief Hashtable iterator
+	 */
+	struct hashtable_iter
+	{
+		struct hashtable *ht;
+		size_t bucket_index;
+		struct list *next;
+	};
+
 	/* ==================== External functions ==================== */
 	extern int hashtable_init(
 		struct hashtable **ht,
 		void (*setup_algorithm)(struct hashtable **ht)
 	);
-
+	extern int hashtable_iter_init(
+		struct hashtable **h,
+		struct hashtable_iter *it
+	);
+	extern int hashtable_iter_next(struct hashtable_iter *it, struct list **li);
 	extern int hashtable_finish(struct hashtable **ht, int dealloc);
 	extern int hashtable_add(struct hashtable **ht, void *key, void *value);
 	extern void* hashtable_get(struct hashtable **ht, void *key);
