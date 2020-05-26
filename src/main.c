@@ -182,10 +182,10 @@ void do_analysis(const char *file, const char *function, char **argv)
 
 	/* Wait child, create the breakpoint list and insert them. */
 	pt_waitchild();
-	{
-		breakpoints = bp_createlist(lines, child);
-	}
+	breakpoints = bp_createlist(lines);
+	bp_insertbreakpoints(breakpoints, child);
 
+	/* Proceed execution. */
 	pt_continue_single_step(child);
 	init_vars = 0;
 	prev_bp = NULL;
