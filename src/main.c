@@ -22,6 +22,13 @@
  * SOFTWARE.
  */
 
+#define _POSIX_C_SOURCE 200809L
+#include <sys/types.h>
+#include <signal.h>
+#include <ctype.h>
+#include <inttypes.h>
+
+#include "analysis.h"
 #include "breakpoint.h"
 #include "cpudisp.h"
 #include "dwarf_helper.h"
@@ -37,8 +44,7 @@
 #include "optparse.h"
 
 #include "pbd.h"
-#include <ctype.h>
-#include <inttypes.h>
+
 
 /* Depth, useful for recursive analysis. */
 int depth;
@@ -117,6 +123,9 @@ int setup(const char *file, const char *function)
 
 	depth = 0;
 
+	/* Argument list of static analysis. */
+	static_analysis_init();
+
 	/*
 	 * Since all dwarf analysis are static, when the analysis
 	 * is over, we can already free the dwarf context.
@@ -154,6 +163,9 @@ void finish(void)
 	/* Deallocate theme file, if any. */
 	if (args.theme_file != NULL)
 		free(args.theme_file);
+
+	/* Deallocate static analysis data structures. */
+	static_analysis_finish();
 }
 
 /**
@@ -182,7 +194,17 @@ void do_analysis(const char *file, const char *function, char **argv)
 
 	/* Wait child, create the breakpoint list and insert them. */
 	pt_waitchild();
-	breakpoints = bp_createlist(lines);
+
+	/*
+	 * Create the breakpoint list accordingly with the analysis type.
+	 * Normal
+	 * Static analysis
+	 */
+	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
+		static_analysis(filename, function, lines) :
+		bp_createlist(lines);
+
+	/* Insert them. */
 	bp_insertbreakpoints(breakpoints, child);
 
 	/* Proceed execution. */
@@ -380,6 +402,7 @@ void usage(int retcode, const char *prg_name)
 	printf("Usage: %s [options] executable function_name [executable_options]\n",
 		prg_name);
 	printf("Options:\n");
+	printf("--------\n");
 	printf("  -h --help           Display this information\n");
 	printf("  -v --version        Display the PBD version\n");
 	printf("  -s --show-lines     Shows the debugged source code portion in the output\n");
@@ -392,7 +415,16 @@ void usage(int retcode, const char *prg_name)
 	printf("  -i --ignore-list <var1, ...> Ignores a specified list of variables names\n");
 	printf("  -w --watch-list  <var1, ...> Monitors a specified list of variables names\n");
 
+	printf("\nStatic Analysis options:\n");
+	printf("------------------------\n");
+	printf("PBD is able to do a previous static analysis in the C source code that\n");
+	printf("belongs to the monitored function, and thus, greatly improving the\n");
+	printf("debugging time. Note however, that this is an experimental feature.\n");
+	printf("\n");
+	printf("  -S --static                Enables static analysis\n");
+
 	printf("\nSyntax highlighting options:\n");
+	printf("----------------------------\n");
 	printf("  -c --color                 Enables syntax highlight, this option only takes\n");
 	printf("                             effect while used together with --show-lines, Also\n");
 	printf("                             note that this option requires a 256-color\n");
@@ -401,6 +433,7 @@ void usage(int retcode, const char *prg_name)
 	printf("  -t  --theme <theme-file>   Select a theme file for the highlighting\n");
 
 	printf("\nNotes:\n");
+	printf("------\n");
 	printf("  - Options -i and -w are mutually exclusive!\n\n");
 	printf("  - The executable *must* be built without any optimization and with at\n"
 		   "    least -gdwarf-2 and no PIE! (if PIE enabled by default)");
@@ -409,6 +442,7 @@ void usage(int retcode, const char *prg_name)
 	printf("  -d --dump-all    Dump all information gathered by the executable\n");
 
 	printf("\n\n'Unsafe' options:\n");
+	printf("-----------------\n");
 	printf("  The options below are meant to be used with caution, since they could lead\n"
 		   "  to wrong output.\n\n");
 
@@ -499,6 +533,7 @@ static void readargs(int argc, char **argv)
 		{"only-globals",           'g',     OPTPARSE_NONE},
 		{"ignore-list",            'i', OPTPARSE_REQUIRED},
 		{"watch-list",             'w', OPTPARSE_REQUIRED},
+		{"static",                 'S',     OPTPARSE_NONE},
 		{"color",                  'c',     OPTPARSE_NONE},
 		{"theme",                  't', OPTPARSE_REQUIRED},
 		{"dump-all",               'd',     OPTPARSE_NONE},
@@ -567,6 +602,9 @@ static void readargs(int argc, char **argv)
 					(strlen(options.optarg) + 1));
 
 				strcpy(args.iw_list.list, options.optarg);
+				break;
+			case 'S':
+				args.flags |= FLG_STATIC_ANALYSIS;
 				break;
 			case 'c':
 				args.flags |= FLG_SYNTAX_HIGHLIGHT;

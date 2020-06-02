@@ -23,12 +23,15 @@
 CC ?= gcc
 INCLUDE = $(CURDIR)/include
 
+# Sparse lib
+INCLUDE_SPARSE += $(CURDIR)/sparse/
+
 # Some distros like Debian Buster (10) and Ubuntu Bionic (18.04)
 # uses a different path for libdwarf, so lets use it.
 INCLUDE_DWARF = /usr/include/libdwarf/
 
 CFLAGS   = -Wall -Wextra -Werror
-CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF)
+CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF) -I $(INCLUDE_SPARSE)
 CFLAGS  += -std=c99 -g -O3
 LDFLAGS  = -ldwarf -lm
 

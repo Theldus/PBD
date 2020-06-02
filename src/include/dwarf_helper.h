@@ -209,7 +209,7 @@
 
 		size_t byte_size;
 
-		struct type
+		struct vtype
 		{
 			int var_type;
 			int encoding;

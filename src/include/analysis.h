@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
+ * Copyright (c) 2020 Davidson Francis <davidsondfgl@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,50 +22,33 @@
  * SOFTWARE.
  */
 
-#ifndef PBD_H
-#define PBD_H
+#ifndef ANALYSIS_H
+#define ANALYSIS_H
 
-	/* Current version. */
-	#define MAJOR_VERSION 0
-	#define MINOR_VERSION 6
-	#define RLSE_VERSION ""
+	#include <stdio.h>
+	#include <string.h>
+	#include "dissect.h"
+	#include "scope.h"
+	#include "ptrlist.h"
+	#include "breakpoint.h"
+	#include "dwarf_helper.h"
 
-	/* Arguments flags. */
-	#define FLG_SHOW_LINES       0x01
-	#define FLG_ONLY_LOCALS      0x02
-	#define FLG_ONLY_GLOBALS     0x04
-	#define FLG_IGNR_LIST        0x08
-	#define FLG_WATCH_LIST       0x10
-	#define FLG_DUMP_ALL         0x20
-	#define FLG_IGNR_EQSTAT      0x40
-	#define FLG_SYNTAX_HIGHLIGHT 0x80
-	#define FLG_STATIC_ANALYSIS  0x100
-
-	/* Experimental features.
+	/*
+	 * Arguments structure.
 	 *
-	 * If something goes wrong, the following experimental flags
-	 * can be disabled.
 	 */
-	/* none yet. */
-
-	/* Program arguments. */
-	struct args
+	struct analysis_struct
 	{
-		uint16_t flags;
-		int context;
-		struct iw_list
-		{
-			char *list;
-			struct hashtable *ht_list;
-		} iw_list;
-		char *executable;
-		char *function;
-		char *theme_file;
-		char **argv;
+		struct array *args;
 	};
 
-	extern struct args args;
-	extern void finish(void);
-	extern void usage(int retcode, const char *prg_name);
+	extern int static_analysis_init(void);
+	extern void static_analysis_finish(void);
 
-#endif /* PDB_H */
+	extern struct hashtable *static_analysis(
+		const char *file,
+		const char *func,
+		struct array *lines);
+
+
+#endif /* ANALYSIS_H */
