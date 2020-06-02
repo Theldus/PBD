@@ -31,6 +31,6 @@
    Memcheck:Leak
    match-leak-kinds: reachable
    ...
-   fun:dissect
+   fun:sparse
    ...
 }
