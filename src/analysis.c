@@ -362,6 +362,7 @@ void handle_stmt(struct statement *stmt)
 			handle_expr(stmt->case_expression, 0);
 			handle_expr(stmt->case_to, 0);
 			handle_stmt(stmt->case_statement);
+			break;
 		case STMT_LABEL:
 			handle_stmt(stmt->label_statement);
 			break;
