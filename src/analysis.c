@@ -23,6 +23,7 @@
  */
 
 #include "analysis.h"
+#include "pbd.h"
 
 /* Arguments. */
 struct analysis_struct analysis_arguments;
@@ -477,13 +478,61 @@ int static_analysis_init(void)
 }
 
 /**
+ * Adds the argument @p arg and its value @p value into the
+ * argument list for the static analysis.
+ *
+ * @param arg Argument.
+ * @param value Argument value.
+ *
+ * @return Returns 0 if success and a negative value
+ * otherwise.
+ */
+int static_analysis_add_arg(const char *arg, const char *value)
+{
+	char *str;
+
+	/* If not valid. */
+	if (!arg || !value)
+		return (-1);
+
+	/* Make room and copy. */
+	str = malloc(sizeof(char) * (strlen(arg) + strlen(value) + 1));
+	if (!str)
+		return (-1);
+
+	strcpy(str, arg);
+	strcat(str, value);
+	return ( array_add(&analysis_arguments.args, str) );
+}
+
+/**
  * Finishes all allocated resources.
  *
  * @note There is no problem to call this function twice, since
- * array_finish nicely handle NULLed argumets.
+ * array_finish nicely handle NULLed arguments.
  */
 void static_analysis_finish(void)
 {
+	size_t args_count;
+	size_t args_end;
+	args_count = array_size(&analysis_arguments.args);
+
+	/*
+	 * If exists extra parameters, i.e, more than 5:
+	 * [0] 1st: pbd
+	 * [1] 2nd: -Wno-strict-prototypes
+	 * [2] 3rd: -Wno-decl
+	 * [.] (optional arguments here)
+	 * [3] 4th: filename
+	 * [4] 5th: (NULL)
+	 * lets deallocate them.
+	 */
+	if (args_count > 5)
+	{
+		args_end = (args_count - 5) + 3;
+		for (size_t i = 3; i < args_end; i++)
+			free( array_get(&analysis_arguments.args, i, NULL) );
+	}
 	array_finish(&analysis_arguments.args);
 	analysis_arguments.args = NULL;
 }
@@ -495,6 +544,7 @@ void static_analysis_finish(void)
  * @param file Source to be analyzed.
  * @param func Function to be analyzed.
  * @param lines_l Lines list.
+ * @param flags Program flags.
  *
  * @return Returns a breakpoint list containing all the lines
  * that PBD should break.
@@ -510,6 +560,15 @@ struct hashtable *static_analysis(const char *file, const char *func,
 	struct breakpoint *b;
 	struct symbol_list *list;
 	struct string_list *filelist;
+
+	/*
+	 * Enable our default standard if none is set.
+	 * 'gnu11' standard seems to be the most used
+	 * by default between multiples versions of GCC
+	 * and Clang.
+	 */
+	if (!(args.flags & FLG_SANALYSIS_SETSTD))
+		static_analysis_add_arg("-std=", "gnu11");
 
 	/* Append our target file into the list. */
 	array_add(&analysis_arguments.args, (char *)file);
@@ -563,7 +622,6 @@ struct hashtable *static_analysis(const char *file, const char *func,
 		list = sparse(file_cur);
 		process(list);
 	} END_FOR_EACH_PTR(file_cur);
-
 
 	/* Since analysis is done, we can safely
 	 * dealloc our arguments. */

@@ -42,6 +42,10 @@
 		struct array *args;
 	};
 
+	extern int static_analysis_add_arg(
+		const char *arg1,
+		const char *arg2);
+
 	extern int static_analysis_init(void);
 	extern void static_analysis_finish(void);
 

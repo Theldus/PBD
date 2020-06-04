@@ -123,9 +123,6 @@ int setup(const char *file, const char *function)
 
 	depth = 0;
 
-	/* Argument list of static analysis. */
-	static_analysis_init();
-
 	/*
 	 * Since all dwarf analysis are static, when the analysis
 	 * is over, we can already free the dwarf context.
@@ -196,9 +193,9 @@ void do_analysis(const char *file, const char *function, char **argv)
 	pt_waitchild();
 
 	/*
-	 * Create the breakpoint list accordingly with the analysis type.
-	 * Normal
-	 * Static analysis
+	 * Create the breakpoint list accordingly with the analysis type:
+	 * - Normal
+	 * - Static analysis
 	 */
 	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
 		static_analysis(filename, function, lines) :
@@ -393,6 +390,7 @@ static void dump_all(const char *prg_name)
 void usage(int retcode, const char *prg_name)
 {
 	/* Deallocate maybe allocated resources. */
+	static_analysis_finish();
 	if (args.iw_list.list != NULL)
 		free(args.iw_list.list);
 	if (args.theme_file != NULL)
@@ -422,6 +420,13 @@ void usage(int retcode, const char *prg_name)
 	printf("debugging time. Note however, that this is an experimental feature.\n");
 	printf("\n");
 	printf("  -S --static                Enables static analysis\n");
+	printf("\nOptional flags:\n");
+	printf("  -D sym[=val]               Defines 'sym' with value 'val'\n");
+	printf("  -U sym                     Undefines 'sym'\n");
+	printf("  -I dir                     Add 'dir' to the include path\n");
+	printf("  --std=<std>                Defines the language standard, supported values\n");
+	printf("                             are: c89, gnu89, c99, gnu99, c11 and gnu11.\n");
+	printf("                             (Default: gnu11)\n");
 
 	printf("\nSyntax highlighting options:\n");
 	printf("----------------------------\n");
@@ -534,6 +539,10 @@ static void readargs(int argc, char **argv)
 		{"ignore-list",            'i', OPTPARSE_REQUIRED},
 		{"watch-list",             'w', OPTPARSE_REQUIRED},
 		{"static",                 'S',     OPTPARSE_NONE},
+		{0,                        'D', OPTPARSE_REQUIRED},
+		{0,                        'U', OPTPARSE_REQUIRED},
+		{0,                        'I', OPTPARSE_REQUIRED},
+		{"std",                    254, OPTPARSE_REQUIRED},
 		{"color",                  'c',     OPTPARSE_NONE},
 		{"theme",                  't', OPTPARSE_REQUIRED},
 		{"dump-all",               'd',     OPTPARSE_NONE},
@@ -605,6 +614,43 @@ static void readargs(int argc, char **argv)
 				break;
 			case 'S':
 				args.flags |= FLG_STATIC_ANALYSIS;
+				break;
+			case 'D':
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using -D\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				static_analysis_add_arg("-D ", options.optarg);
+				break;
+			case 'U':
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using -U\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				static_analysis_add_arg("-U ", options.optarg);
+				break;
+			case 'I':
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using -I\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				static_analysis_add_arg("-I", options.optarg);
+				break;
+			case 254:
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using --std\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				args.flags |= FLG_SANALYSIS_SETSTD;
+				static_analysis_add_arg("-std=", options.optarg);
 				break;
 			case 'c':
 				args.flags |= FLG_SYNTAX_HIGHLIGHT;
@@ -682,6 +728,13 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
+	/*
+	 * Argument list of static analysis.
+	 * This argument list should be built _before_ the arguments
+	 * parsing.
+	 */
+	static_analysis_init();
+
 	/* Read arguments. */
 	readargs(argc, argv);
 

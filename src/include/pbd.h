@@ -40,6 +40,7 @@
 	#define FLG_IGNR_EQSTAT      0x40
 	#define FLG_SYNTAX_HIGHLIGHT 0x80
 	#define FLG_STATIC_ANALYSIS  0x100
+	#define FLG_SANALYSIS_SETSTD 0x200
 
 	/* Experimental features.
 	 *
