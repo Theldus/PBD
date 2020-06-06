@@ -351,6 +351,9 @@ static void dump_all(const char *prg_name)
 	if ((child = pt_spawnprocess(args.executable, NULL)) < 0)
 		QUIT(EXIT_FAILURE, "error while spawning the child process!\n");
 
+	/* Wait for child process. */
+	pt_waitchild();
+
 	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION,
 		MINOR_VERSION, RLSE_VERSION);
 	printf("---------------------------------------\n");
