@@ -333,7 +333,11 @@ void do_analysis(const char *file, const char *function, char **argv)
  */
 static void dump_all(const char *prg_name)
 {
-	pid_t child; /* Child process pid. */
+	struct hashtable *breakpoints;  /* Breakpoints list.     */
+	struct breakpoint *b_k, *b_v;   /* Breakpoint key/value. */
+	pid_t child;                    /* Child process pid.    */
+	int i;                          /* Loop index.           */
+	((void)b_k);
 
 	/* Executable and function name should always be passed as parameters! */
 	if (args.executable == NULL || args.function == NULL)
@@ -347,8 +351,8 @@ static void dump_all(const char *prg_name)
 	if ((child = pt_spawnprocess(args.executable, NULL)) < 0)
 		QUIT(EXIT_FAILURE, "error while spawning the child process!\n");
 
-	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
-		RLSE_VERSION);
+	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION,
+		MINOR_VERSION, RLSE_VERSION);
 	printf("---------------------------------------\n");
 
 	/* File name. */
@@ -364,17 +368,22 @@ static void dump_all(const char *prg_name)
 
 	/* Break point list. */
 	printf("\nBreakpoint list:\n");
-	for (int i = 0; i < (int) array_size(&lines); i++)
+	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
+		static_analysis(filename, args.function, lines) :
+		bp_createlist(lines);
+
+	i = 0;
+	HASHTABLE_FOREACH(breakpoints, b_k, b_v,
 	{
-		struct dw_line *l;
-		l = array_get(&lines, i, NULL);
-
-		if (l->line_type != LBEGIN_STMT)
-			continue;
-
-		printf("    Breakpoint #%03d, line: %03d / addr: %" PRIx64" / orig_byte: %" PRIx64"\n",
-			i, l->line_no, l->addr, (pt_readmemory64(child, l->addr) & 0xFF));
-	}
+		printf(
+			"    Breakpoint #%03d, line: %03d / addr: %" PRIx64
+			" / orig_byte: %" PRIx64"\n",
+			i++,
+			b_v->line_no,
+			b_v->addr,
+			(pt_readmemory64(child, b_v->addr) & 0xFF)
+		);
+	});
 
 	kill(child, SIGKILL);
 	finish();
