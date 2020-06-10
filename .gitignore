@@ -29,3 +29,5 @@ src/benchs/csv_times
 src/benchs/gdb_script
 src/tests/test
 src/tests/outputs/test_func1_out
+src/tests/outputs/test_func1_out_sa
+src/tests/outputs/test_func3_out_sa

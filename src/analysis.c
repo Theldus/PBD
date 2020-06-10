@@ -55,6 +55,59 @@ static struct hashtable *breakpoints;
 static struct array *lines;
 
 /**
+ * If dump_all flag is enabled, verbose_assign()
+ * will output to stdout all the assignment/declaration
+ * statements that is found during the file parsing.
+ *
+ * @param line_no stmt/expr line number.
+ * @param name variable name.
+ * @param is_assign 1 if assignment statement, 0 otherwise.
+ * @param is_decl 1 if declaration statement, 0 otherwise.
+ * @param is_ignored 1 if the statement/expr is ignored*,
+ *        0 otherwise.
+ *
+ * @note *An statement/expression will be ignored if the
+ * variable is not one of the types tracked (currently:
+ * basetype, arrays and pointers) or if outside the valid
+ * scopes, i.e: not global and/or not in the function
+ * scope.
+ */
+static inline void verbose_assign(
+	int line_no,
+	const char *name,
+	int is_assign,
+	int is_decl,
+	int is_ignored)
+{
+	if (args.flags & FLG_DUMP_ALL)
+	{
+		printf("===static=analysis=== [%03d] %15s (is_assign: %d) %s%s\n",
+			line_no,
+			name,
+			is_assign,
+			(is_decl ? "(decl) " : ""),
+			(is_ignored ? "(ignored) " : "")
+		);
+	}
+}
+
+/**
+ * If dump_all flag is enabled, verbose_function_call()
+ * will output to stdout all the function call statements
+ * that is found during the file parsing.
+ *
+ * @param line_no Function call line number.
+ */
+static inline void verbose_function_call(int line_no)
+{
+	if (args.flags & FLG_DUMP_ALL)
+	{
+		printf("===static=analysis=== [%03d] %15s (func call)\n",
+			line_no, "");
+	}
+}
+
+/**
  * Do a binary search on the lines list looking for a given @p
  * line_no and returns the leftmost ocurrence, if there is more
  * than one.
@@ -291,13 +344,24 @@ void handle_expr(struct expression *expr, int is_assignment)
 
 		/* Function call, no need to proceed further. */
 		case EXPR_CALL:
+			verbose_function_call(expr->pos.line);
 			try_add_symbol(expr->pos.line);
 			break;
 
 		/* Symbol found, yay. */
 		case EXPR_SYMBOL:
 			if (is_assignment && should_watch_sym(expr->symbol))
+			{
+				verbose_assign(expr->pos.line, expr->symbol_name->name,
+					is_assignment, 0, 0);
+
 				try_add_symbol(expr->pos.line);
+			}
+			else
+			{
+				verbose_assign(expr->pos.line, expr->symbol_name->name,
+					is_assignment, 0, 1);
+			}
 			break;
 	}
 }
@@ -387,7 +451,10 @@ void handle_stmt(struct statement *stmt)
 					 * of type: basetype, arrays or pointers.
 					 */
 					if (should_watch_sym(sym))
+					{
+						verbose_assign(sym->pos.line, sym->ident->name, 1, 1, 0);
 						try_add_symbol(sym->pos.line);
+					}
 
 					/*
 					 * Cases like:
@@ -398,8 +465,14 @@ void handle_stmt(struct statement *stmt)
 					 * since foo is at function scope and being changed.
 					 */
 					else
+					{
+						verbose_assign(sym->pos.line, sym->ident->name, 1, 1, 1);
 						handle_expr(sym->initializer, 0);
+					}
 				}
+				else
+					verbose_assign(sym->pos.line, sym->ident->name, 0, 1, 1);
+
 			} END_FOR_EACH_PTR(sym);
 			break;
 
