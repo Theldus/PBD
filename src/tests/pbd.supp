@@ -18,6 +18,8 @@
 #    by 0x4149D5: init_stream (tokenize.c:310)
 #    by 0x414D45: tokenize (tokenize.c:1016)
 #    by 0x40C6A3: try_include (pre-process.c:923)
+#    by 0x41D58C: do_include_path (pre-process.c:935)
+#    by 0x41D770: handle_include_path (pre-process.c:998)
 # <snip>
 #
 # * While some might argue that 'still reachable' are not _true_
@@ -31,6 +33,6 @@
    Memcheck:Leak
    match-leak-kinds: reachable
    ...
-   fun:sparse
+   fun:handle_include_path
    ...
 }
