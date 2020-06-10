@@ -28,4 +28,4 @@ src/benchs/*.png
 src/benchs/csv_times
 src/benchs/gdb_script
 src/tests/test
-src/tests/test_func1_out
+src/tests/outputs/test_func1_out

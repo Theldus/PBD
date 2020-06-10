@@ -36,7 +36,7 @@ echo -n "Tests..."
 
 # Run iterative and recursive tests
 {
-	"$PBD_FOLDER"/pbd test func1     > test_func1_out &&\
+	"$PBD_FOLDER"/pbd test func1     > outputs/test_func1_out &&\
 	"$PBD_FOLDER"/pbd test factorial
 } &> /dev/null
 
@@ -49,7 +49,7 @@ then
 	#
 	#
 	#
-	if cmp -s "test_func1_expected" "test_func1_out"
+	if cmp -s "outputs/test_func1_expected" "outputs/test_func1_out"
 	then
 		echo -e " [${GREEN}PASSED${NC}]"
 
