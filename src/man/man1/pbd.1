@@ -1,6 +1,6 @@
 .\" MIT License
 .\"
-.\" Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
+.\" Copyright (c) 2019-2020 Davidson Francis <davidsondfgl@gmail.com>
 .\"
 .\" Permission is hereby granted, free of charge, to any person obtaining a copy
 .\" of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 .\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
 .\"
-.TH "PBD" "1" "2020-03-15" "v0.6" "pbd man page"
+.TH "PBD" "1" "2020-06-11" "v0.6" "pbd man page"
 .SH NAME
 pbd \- Printf Based Debugger
 .SH SYNOPSIS
@@ -58,7 +58,27 @@ whether local or global. Options -i and -w are mutually exclusive.
 Given a comma separated sequence of variables names, PBD will only watch them,
 whether local or global. Options -i and -w are mutually exclusive.
 .PP
-Syntax highlighting options:
+\fIStatic Analysis options:\fR
+.PP
+PBD is able to do a previous static analysis in the C source code that
+belongs to the monitored function, and thus, greatly improving the
+debugging time. Note however, that this is an experimental feature.
+.IP "-S --static"
+Enables static analysis
+.PP
+Optional flags:
+.IP "-D sym[=val]"
+Defines 'sym' with value 'val'.
+.IP "-U <sym>"
+Defines 'sym' with value 'val'.
+.IP "-I <dir>"
+Add 'dir' to the include path.
+.IP "--std=<std>"
+Defines the language standard, supported values
+are: c89, gnu89, c99, gnu99, c11 and gnu11.
+(Default: gnu11)
+.PP
+\fISyntax highlighting options:\fR
 .IP "-c --color"
 Enables syntax highlight. This option only takes effect if used together with
 --show-lines. Note that this option also requires a 256-color compatible
@@ -71,7 +91,7 @@ The following options are for PBD internals:
 Dump all information gathered by the executable: name, size, type, encoding,
 location, its breakpoint list and etc...
 .PP
-\'Unsafe\' options:
+\fI\'Unsafe\' options:\fR
 .PP
 The options below are meant to be used with caution, since
 they could lead to wrong output.
@@ -84,7 +104,7 @@ in this case, PBD *will* note the changes, but will identify a wrong line
 number, in most cases, a number greater than the expected.
 .SH NOTES
 .PP
-At the current release (v0.5) PBD have some points that need some hightlights:
+At the current release (v0.6) PBD have some points that need some hightlights:
 .PP
 Supported compilers (others might work):
 .RS 2
