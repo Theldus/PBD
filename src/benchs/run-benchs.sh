@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
+# Copyright (c) 2019-2020 Davidson Francis <davidsondfgl@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ then
 	exit 1
 fi
 
-vars=$(../pbd ./bench do_work -d | grep "Variable found" | cut -d':' -f2 | tr -d ' ')
+vars=$(../pbd ./bench do_work1 -d | grep "Variable found" | cut -d':' -f2 | tr -d ' ')
 IFS=$'
 '
 unset IFS
@@ -47,8 +47,6 @@ vars=($vars)
 {
 	echo "set can-use-hw-watchpoints 0"
 	echo "set confirm off"
-	echo "b do_work"
-	echo "r"
 } > gdb_script
 
 for var in "${vars[@]}"
@@ -60,44 +58,71 @@ do
 		echo "end"
 	} >> gdb_script
 done
-echo "c" >> gdb_script
+echo "r" >> gdb_script
 
 # Setup environment
 increment=12500
 size=$increment
 
-# Prepare CSV
-echo "size, time_pbd, time_gdb" > csv_times
-
-echo -e "\nThis may take some minutes, please be patient..."
-for (( step=0; step<8; step++ ))
-do
-	echo    "Test #$step, size: $size"
-	echo -n "  > PBD..."
-
-	# Run PBD
-	#
-	# It is safe to use '--avoid-equal-statements' here, since
-	# this does not affects the output from this benchmark.
-	#
+# ------------------------
+# PBD work
+# Arguments:
+# $1 = work number
+# $2 = size
+# $3 = optional arguments
+# ------------------------
+function pbd_work()
+{
 start_time="$(date -u +%s.%N)"
-	../pbd ./bench do_work "$size" --avoid-equal-statements &>/dev/null
+	../pbd ./bench do_work"$1" "$size" "$1" "$3" &>/dev/null
 end_time="$(date -u +%s.%N)"
-
 	elapsed_pbd="$(bc <<<"$end_time-$start_time" | awk '{printf "%f", $0}')"
-	echo -en " $elapsed_pbd secs\n"
+	echo "$elapsed_pbd"
+}
 
-	# Run GDB
-	echo -n "  > GDB..."
+# --------------------
+# GDB work
+# Arguments
+# $1 = work number
+# $2 = size
+# --------------------
+function gdb_work()
+{
 start_time="$(date -u +%s.%N)"
-	gdb -batch -x gdb_script --args ./bench "$size" &>/dev/null
+	gdb -batch -x gdb_script --args ./bench "$size" "$1" &>/dev/null
 end_time="$(date -u +%s.%N)"
-
 	elapsed_gdb="$(bc <<<"$end_time-$start_time" | awk '{printf "%f", $0}')"
-	echo -en " $elapsed_gdb secs\n\n"
+	echo "$elapsed_gdb"
+}
 
-	echo "$size, $elapsed_pbd, $elapsed_gdb" >> csv_times
-	size=$((size + increment))
+# Prepare CSV
+echo "size, normal_pbd, static_pbd, gdb" > csv_times
+echo -e "\nBeware, this may take up to 3 hours to finish..."
+
+for (( work=1; work<4; work++ ))
+do
+	echo "> do_work$work..."
+
+	for (( step=1; step<9; step++ ))
+	do
+		size=$((step*12500))
+
+		# Normal PBD
+		echo "    > PBD default...."
+		time_pbd="$(pbd_work "$work" $size "")"
+
+		# With static analysis PBD
+		echo "    > PBD static...."
+		time_static="$(pbd_work "$work" $size "-S")"
+
+		# GDB
+		echo "    > GDB...."
+		time_gdb="$(gdb_work "$work" $size)"
+
+		echo "    Times: (size=$size), PBD: $time_pbd / PBD Static Analysis: $time_static / GDB: $time_gdb"
+		echo "$size, $time_pbd, $time_static, $time_gdb" >> csv_times
+		echo ""
+	done
 done
 
 # Plot graph =)
