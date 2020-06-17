@@ -626,7 +626,7 @@ void static_analysis_finish(void)
  * does, but in a 'smarter' way.
  */
 struct hashtable *static_analysis(const char *file, const char *func,
-	struct array *lines_l)
+	struct array *lines_l, uint64_t firstbreak)
 {
 	char *file_cur;
 	struct dw_line *line;
@@ -650,15 +650,15 @@ struct hashtable *static_analysis(const char *file, const char *func,
 	/* Initialize breakpoint hashtable. */
 	hashtable_init(&breakpoints, NULL);
 
-	/* First line. */
-	line = array_get(&lines_l, 0, NULL);
-	func_line_start = line->line_no;
-
-	/* Allocate our first breakpoint. */
+	/*
+	 * Allocate our first breakpoint to the first function
+	 * instruction. Since this is an special case, there is
+	 * no need to known the line number.
+	 */
 	b = malloc(sizeof(struct breakpoint));
-	b->addr = line->addr;
+	b->addr = firstbreak;
 	b->original_byte = 0;
-	b->line_no = line->line_no;
+	b->line_no = 0;
 
 	/*
 	 * Set our first breakpoint to the very

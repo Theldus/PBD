@@ -99,6 +99,8 @@ then
 		echo -e " [${RED}NOT PASSED${NC}] (normal analysis differ from expected output)"
 		exit 1
 	fi
+else
+	echo -e " [${RED}NOT PASSED${NC}] (execution error)"
 fi
 
 # Run static analysis tests

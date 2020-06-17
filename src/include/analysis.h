@@ -52,7 +52,8 @@
 	extern struct hashtable *static_analysis(
 		const char *file,
 		const char *func,
-		struct array *lines);
+		struct array *lines,
+		uint64_t firstbreak);
 
 
 #endif /* ANALYSIS_H */

@@ -198,7 +198,7 @@ void do_analysis(const char *file, const char *function, char **argv)
 	 * - Static analysis
 	 */
 	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
-		static_analysis(filename, function, lines) :
+		static_analysis(filename, function, lines, dw.dw_func.low_pc) :
 		bp_createlist(lines);
 
 	/* Insert them. */
@@ -372,7 +372,7 @@ static void dump_all(const char *prg_name)
 	/* Break point list. */
 	printf("\nBreakpoint list:\n");
 	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
-		static_analysis(filename, args.function, lines) :
+		static_analysis(filename, args.function, lines, dw.dw_func.low_pc) :
 		bp_createlist(lines);
 
 	i = 0;
