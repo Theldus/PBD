@@ -101,6 +101,7 @@ then
 	fi
 else
 	echo -e " [${RED}NOT PASSED${NC}] (execution error)"
+	exit 1
 fi
 
 # Run static analysis tests
