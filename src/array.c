@@ -23,6 +23,7 @@
  */
 
 #include "array.h"
+#include "dwarf_helper.h"
 
 /**
  * Initializes the array.
@@ -232,6 +233,31 @@ size_t array_size(struct array **array)
 		return (0);
 
 	return ( (*array)->elements );
+}
+
+/**
+ * @brief Given an array and a comparator function pointer,
+ * orders the array.
+ *
+ * @param ar Array to be ordered.
+ * @param cmp Compare function pointer.
+ *
+ * @return Returns 0 if success and a negative number
+ * otherwise.
+ */
+int array_sort(struct array **ar,
+	int (*cmp)(const void*,const void*))
+{
+	struct array *array; /* Array. */
+	array = *ar;
+
+	/* Array exists and has elements?. */
+	if (array == NULL || !array->elements)
+		return (-1);
+
+	/* Sort. */
+	qsort(array->buf, array->elements, sizeof(void *), cmp);
+	return (0);
 }
 
 /*============================================================================*

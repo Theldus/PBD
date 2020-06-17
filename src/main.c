@@ -22,6 +22,13 @@
  * SOFTWARE.
  */
 
+#define _POSIX_C_SOURCE 200809L
+#include <sys/types.h>
+#include <signal.h>
+#include <ctype.h>
+#include <inttypes.h>
+
+#include "analysis.h"
 #include "breakpoint.h"
 #include "cpudisp.h"
 #include "dwarf_helper.h"
@@ -37,8 +44,7 @@
 #include "optparse.h"
 
 #include "pbd.h"
-#include <ctype.h>
-#include <inttypes.h>
+
 
 /* Depth, useful for recursive analysis. */
 int depth;
@@ -154,6 +160,9 @@ void finish(void)
 	/* Deallocate theme file, if any. */
 	if (args.theme_file != NULL)
 		free(args.theme_file);
+
+	/* Deallocate static analysis data structures. */
+	static_analysis_finish();
 }
 
 /**
@@ -182,10 +191,20 @@ void do_analysis(const char *file, const char *function, char **argv)
 
 	/* Wait child, create the breakpoint list and insert them. */
 	pt_waitchild();
-	{
-		breakpoints = bp_createlist(lines, child);
-	}
 
+	/*
+	 * Create the breakpoint list accordingly with the analysis type:
+	 * - Normal
+	 * - Static analysis
+	 */
+	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
+		static_analysis(filename, function, lines, dw.dw_func.low_pc) :
+		bp_createlist(lines);
+
+	/* Insert them. */
+	bp_insertbreakpoints(breakpoints, child);
+
+	/* Proceed execution. */
 	pt_continue_single_step(child);
 	init_vars = 0;
 	prev_bp = NULL;
@@ -314,7 +333,11 @@ void do_analysis(const char *file, const char *function, char **argv)
  */
 static void dump_all(const char *prg_name)
 {
-	pid_t child; /* Child process pid. */
+	struct hashtable *breakpoints;  /* Breakpoints list.     */
+	struct breakpoint *b_k, *b_v;   /* Breakpoint key/value. */
+	pid_t child;                    /* Child process pid.    */
+	int i;                          /* Loop index.           */
+	((void)b_k);
 
 	/* Executable and function name should always be passed as parameters! */
 	if (args.executable == NULL || args.function == NULL)
@@ -328,8 +351,11 @@ static void dump_all(const char *prg_name)
 	if ((child = pt_spawnprocess(args.executable, NULL)) < 0)
 		QUIT(EXIT_FAILURE, "error while spawning the child process!\n");
 
-	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
-		RLSE_VERSION);
+	/* Wait for child process. */
+	pt_waitchild();
+
+	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION,
+		MINOR_VERSION, RLSE_VERSION);
 	printf("---------------------------------------\n");
 
 	/* File name. */
@@ -345,17 +371,22 @@ static void dump_all(const char *prg_name)
 
 	/* Break point list. */
 	printf("\nBreakpoint list:\n");
-	for (int i = 0; i < (int) array_size(&lines); i++)
+	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
+		static_analysis(filename, args.function, lines, dw.dw_func.low_pc) :
+		bp_createlist(lines);
+
+	i = 0;
+	HASHTABLE_FOREACH(breakpoints, b_k, b_v,
 	{
-		struct dw_line *l;
-		l = array_get(&lines, i, NULL);
-
-		if (l->line_type != LBEGIN_STMT)
-			continue;
-
-		printf("    Breakpoint #%03d, line: %03d / addr: %" PRIx64" / orig_byte: %" PRIx64"\n",
-			i, l->line_no, l->addr, (pt_readmemory64(child, l->addr) & 0xFF));
-	}
+		printf(
+			"    Breakpoint #%03d, line: %03d / addr: %" PRIx64
+			" / orig_byte: %" PRIx64"\n",
+			i++,
+			b_v->line_no,
+			b_v->addr,
+			(pt_readmemory64(child, b_v->addr) & 0xFF)
+		);
+	});
 
 	kill(child, SIGKILL);
 	finish();
@@ -371,6 +402,7 @@ static void dump_all(const char *prg_name)
 void usage(int retcode, const char *prg_name)
 {
 	/* Deallocate maybe allocated resources. */
+	static_analysis_finish();
 	if (args.iw_list.list != NULL)
 		free(args.iw_list.list);
 	if (args.theme_file != NULL)
@@ -380,6 +412,7 @@ void usage(int retcode, const char *prg_name)
 	printf("Usage: %s [options] executable function_name [executable_options]\n",
 		prg_name);
 	printf("Options:\n");
+	printf("--------\n");
 	printf("  -h --help           Display this information\n");
 	printf("  -v --version        Display the PBD version\n");
 	printf("  -s --show-lines     Shows the debugged source code portion in the output\n");
@@ -392,7 +425,23 @@ void usage(int retcode, const char *prg_name)
 	printf("  -i --ignore-list <var1, ...> Ignores a specified list of variables names\n");
 	printf("  -w --watch-list  <var1, ...> Monitors a specified list of variables names\n");
 
+	printf("\nStatic Analysis options:\n");
+	printf("------------------------\n");
+	printf("PBD is able to do a previous static analysis in the C source code that\n");
+	printf("belongs to the monitored function, and thus, greatly improving the\n");
+	printf("debugging time. Note however, that this is an experimental feature.\n");
+	printf("\n");
+	printf("  -S --static                Enables static analysis\n");
+	printf("\nOptional flags:\n");
+	printf("  -D sym[=val]               Defines 'sym' with value 'val'\n");
+	printf("  -U sym                     Undefines 'sym'\n");
+	printf("  -I dir                     Add 'dir' to the include path\n");
+	printf("  --std=<std>                Defines the language standard, supported values\n");
+	printf("                             are: c89, gnu89, c99, gnu99, c11 and gnu11.\n");
+	printf("                             (Default: gnu11)\n");
+
 	printf("\nSyntax highlighting options:\n");
+	printf("----------------------------\n");
 	printf("  -c --color                 Enables syntax highlight, this option only takes\n");
 	printf("                             effect while used together with --show-lines, Also\n");
 	printf("                             note that this option requires a 256-color\n");
@@ -401,6 +450,7 @@ void usage(int retcode, const char *prg_name)
 	printf("  -t  --theme <theme-file>   Select a theme file for the highlighting\n");
 
 	printf("\nNotes:\n");
+	printf("------\n");
 	printf("  - Options -i and -w are mutually exclusive!\n\n");
 	printf("  - The executable *must* be built without any optimization and with at\n"
 		   "    least -gdwarf-2 and no PIE! (if PIE enabled by default)");
@@ -409,6 +459,7 @@ void usage(int retcode, const char *prg_name)
 	printf("  -d --dump-all    Dump all information gathered by the executable\n");
 
 	printf("\n\n'Unsafe' options:\n");
+	printf("-----------------\n");
 	printf("  The options below are meant to be used with caution, since they could lead\n"
 		   "  to wrong output.\n\n");
 
@@ -499,6 +550,11 @@ static void readargs(int argc, char **argv)
 		{"only-globals",           'g',     OPTPARSE_NONE},
 		{"ignore-list",            'i', OPTPARSE_REQUIRED},
 		{"watch-list",             'w', OPTPARSE_REQUIRED},
+		{"static",                 'S',     OPTPARSE_NONE},
+		{0,                        'D', OPTPARSE_REQUIRED},
+		{0,                        'U', OPTPARSE_REQUIRED},
+		{0,                        'I', OPTPARSE_REQUIRED},
+		{"std",                    254, OPTPARSE_REQUIRED},
 		{"color",                  'c',     OPTPARSE_NONE},
 		{"theme",                  't', OPTPARSE_REQUIRED},
 		{"dump-all",               'd',     OPTPARSE_NONE},
@@ -567,6 +623,46 @@ static void readargs(int argc, char **argv)
 					(strlen(options.optarg) + 1));
 
 				strcpy(args.iw_list.list, options.optarg);
+				break;
+			case 'S':
+				args.flags |= FLG_STATIC_ANALYSIS;
+				break;
+			case 'D':
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using -D\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				static_analysis_add_arg("-D ", options.optarg);
+				break;
+			case 'U':
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using -U\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				static_analysis_add_arg("-U ", options.optarg);
+				break;
+			case 'I':
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using -I\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				static_analysis_add_arg("-I", options.optarg);
+				break;
+			case 254:
+				if (!(args.flags & FLG_STATIC_ANALYSIS))
+				{
+					fprintf(stderr, "%s: static analysis (-S) "
+						"should be enabled first, before using --std\n\n", argv[0]);
+					usage(EXIT_FAILURE, argv[0]);
+				}
+				args.flags |= FLG_SANALYSIS_SETSTD;
+				static_analysis_add_arg("-std=", options.optarg);
 				break;
 			case 'c':
 				args.flags |= FLG_SYNTAX_HIGHLIGHT;
@@ -644,6 +740,13 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
+	/*
+	 * Argument list of static analysis.
+	 * This argument list should be built _before_ the arguments
+	 * parsing.
+	 */
+	static_analysis_init();
+
 	/* Read arguments. */
 	readargs(argc, argv);
 

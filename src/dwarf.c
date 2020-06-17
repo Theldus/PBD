@@ -24,6 +24,7 @@
 
 #include "dwarf_helper.h"
 #include "hashtable.h"
+#include "line.h"
 #include "util.h"
 #include "pbd.h"
 #include <inttypes.h>
@@ -1047,6 +1048,8 @@ struct array *dw_get_all_lines(struct dw_utils *dw)
 	loop:;
 	}
 
+	/* Sort array_lines. */
+	array_sort(&array_lines, line_cmp);
 	return (array_lines);
 }
 

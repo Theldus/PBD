@@ -46,6 +46,8 @@
 		struct dw_variable *v, union var_value *v_before,
 		union var_value *v_after, int *array_idxs);
 
+	extern int line_cmp(const void *a, const void *b);
+
 	extern int line_read_source(const char *filename, int highlight,
 		char *theme_file);
 

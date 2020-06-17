@@ -36,44 +36,62 @@ a predefined variables list, show lines with context and with syntax highlightin
 ```
 Usage: ./pbd [options] executable function_name [executable_options]
 Options:
+--------
   -h --help           Display this information
   -v --version        Display the PBD version
   -s --show-lines     Shows the debugged source code portion in the output
-  -x --context <num>  Shows num lines before and after the code portion. This option is meant to
-                      be used in conjunction with -s option
+  -x --context <num>  Shows num lines before and after the code portion. This option is meant to be used
+                      in conjunction with -s option
 
   -l --only-locals   Monitors only local variables (default: global + local)
   -g --only-globals  Monitors only global variables (default: global + local)
   -i --ignore-list <var1, ...> Ignores a specified list of variables names
   -w --watch-list  <var1, ...> Monitors a specified list of variables names
 
+Static Analysis options:
+------------------------
+PBD is able to do a previous static analysis in the C source code that belongs to the monitored
+function, and thus, greatly improving the debugging time. Note however, that this is an
+experimental feature.
+
+  -S --static                Enables static analysis
+
+Optional flags:
+  -D sym[=val]               Defines 'sym' with value 'val'
+  -U sym                     Undefines 'sym'
+  -I dir                     Add 'dir' to the include path
+  --std=<std>                Defines the language standard, supported values are: c89, gnu89, c99, gnu99,
+                             c11 and gnu11. (Default: gnu11)
+
 Syntax highlighting options:
-  -c --color                 Enables syntax highlight, this option only takes effect while used
-                             together with --show-lines, Also note that this option requires a
-                             256-color compatible terminal
+----------------------------
+  -c --color                 Enables syntax highlight, this option only takes effect while used together
+                             with --show-lines, Also note that this option requires a 256-color
+                             compatible terminal.
 
   -t  --theme <theme-file>   Select a theme file for the highlighting
 
 Notes:
+------
   - Options -i and -w are mutually exclusive!
 
-  - The executable *must* be built without any optimization and with at
-    least -gdwarf-2 and no PIE! (if PIE enabled by default)
+  - The executable *must* be built without any optimization and with at least -gdwarf-2 and no PIE!
+    (if PIE enabled by default)
 
 The following options are for PBD internals:
   -d --dump-all    Dump all information gathered by the executable
 
 
 'Unsafe' options:
+-----------------
   The options below are meant to be used with caution, since they could lead
   to wrong output.
 
-  --avoid-equal-statements  If enabled, PBD will ignore all line statements that are 'duplicated',
-                            i.e: belongs to the same liner number, regardless its address.
-
+  --avoid-equal-statements  If enabled, PBD will ignore all line statements that are 'duplicated', i.e:
+                            belongs to the same liner number, regardless its address.
 ```
 
-## Speed
+## Performance
 Some might say: _Why should I worry about PBD? My GDB already does this with the `watch` command!_
 
 Yes, indeed, and it has helped me a lot over the years, but GDB has one problem:
@@ -94,27 +112,42 @@ watchpoint, which is quite simple: the software runs single-step and each monito
 address is checked at each break, which means It's ridiculously slow and costly for the
 machine.
 
-PBD, on the other hand, behaves similarly but differently, let me explain: since the idea
-is to debug more than just 32 bytes, PBD doesn't use _hardware watchpoint_, but it doesn't
-perform single-step all the time either. The main operation is based on _lines of code
-executed_, or rather: statements executed. This means that the PBD puts breakpoints at
-every start of statements and thus checks for all variables at each break.
+Since 32 bytes is an extremely limiting value, PBD does not use  hardware watchpoint but
+manages to be smarter than performing single steps at all times: instead, PBD places
+breakpoints in strategic locations of the executable, so that execution is not interrupted
+at all times, but only when necessary.
 
-This slight difference is enough to translate into a large speedup, depending on the
-versions of GCC / Clang, GDB, and PBD.
-<p align="center"><img align="center" src="https://i.imgur.com/NZYnvPE.png"></p>
+PBD has 2 operating modes, default mode, and static analysis mode, which differ in the
+strategy used for the breakpoints insertion:
+- In default mode, PBD places breakpoints at each start of the statement. Note that not every
+statement has a variable change, but every variable change is within a statement!.
 
-The above chart contains a comparison between GDB v7.12 and PBD v0.5, compiled with GCC 5.3
-(on Linux v4.4.38), running code that contains 40,044 bytes of memory to be watched, which runs
-within a loop that runs from 12,500 iterations to 100,000 iterations. In addition to seeing a
-linear growth in the runtime of the two debuggers, it is interesting to note that for 100k
-iterations, PBD was about 22 times faster than GDB (3.33s vs 76.5s).
+- In static analysis mode (-S), PBD (thanks to [libsparse](https://git.kernel.org/pub/scm/devel/sparse/sparse.git/))
+is able to perform a pre-analysis of the source code that corresponds to the compiled binary
+and thus, is able to accurately identify statements that have variable changes and thus,
+add breakpoints only to them.
 
-The tests can be run by issuing: `make bench` (GDB, Rscript and bc are required, in order
+The graph below compares GDB (v7.12) with PBD in three types of workloads that illustrate the
+best (work1), medium (work2), and worst (work3) execution cases for the PBD. All of them were
+run in the two PBD modes and the following Linux environment: Kernel v4.4.38 and GCC v5.3.
+<p align="center"><img align="center" src="https://i.imgur.com/46LGJTx.png"></p>
+
+From the data above, it can be seen that the PBD manages to be about 13x, 341x and 7785x faster
+than the GDB for the worst (work3), medium (work2), and best (work1) case respectively.
+
+The following table summarizes the speedups:
+| Speedup (PBD vs GDB v7.12) | PBD default | PBD w/ static analysis |
+|----------------------------|-------------|------------------------|
+| work1 (best)               | 27.05x      | 7785.69x               |
+| work2 (avg)                | 40.33x      | 340.95x                |
+| work3 (worst)              | 13.38x      | 13.48x                 |
+
+The tests can be performed with: `make bench` (GDB, Rscript and bc are required, in order
 to execute and plot the graphs).
 
 ## Limitations
 At the moment PBD has some limitations, such as features, compilers, operating systems, of which:
+
 ### Operating Systems
 Exclusive support for Linux (and possibly Unix-like as well) environments. I do not intend to
 support Windows, but I can accept contributions  in this regard.
@@ -150,8 +183,10 @@ You can check for static pre-built binaries in the
 ### Build from source
 The latest changes are here, if you want to build from source, you are just required to install
 `libdwarf` first.
+
 #### Ubuntu/Debian
 `sudo apt install libdwarf-dev`
+
 #### Slackware
 ```
 wget https://www.prevanders.net/libdwarf-20190529.tar.gz
@@ -164,9 +199,10 @@ sudo installpkg /tmp/dwarf-*.tgz
 #### Your distro here
 `sudo something...`
 
-After the dependencies are met, just clone the repository and install as usual:
+After the dependencies are met, just recursively clone (libsparse is a submodule)
+and install as usual:
 ```
-git clone https://github.com/Theldus/PBD.git
+git clone --recursive https://github.com/Theldus/PBD.git
 cd PBD/src/
 make              # Build
 make test         # Tests, I highly recommend you to _not_ skip this!

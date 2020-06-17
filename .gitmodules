@@ -1,0 +1,3 @@
+[submodule "src/sparse"]
+	path = src/sparse
+	url = git://git.kernel.org/pub/scm/devel/sparse/sparse.git

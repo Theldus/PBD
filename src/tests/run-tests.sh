@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2019 Davidson Francis <davidsondfgl@gmail.com>
+# Copyright (c) 2019-2020 Davidson Francis <davidsondfgl@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,11 +32,12 @@ NC='\033[0m'
 # PBD Folder
 PBD_FOLDER=$(readlink -f ../)
 
-echo -n "Tests..."
+echo -n "Tests (normal + static analysis)..."
 
 # Run iterative and recursive tests
 {
-	"$PBD_FOLDER"/pbd test func1     > test_func1_out &&\
+	"$PBD_FOLDER"/pbd test func1     > outputs/test_func1_out    &&\
+	"$PBD_FOLDER"/pbd test func1 -S  > outputs/test_func1_out_sa &&\
 	"$PBD_FOLDER"/pbd test factorial
 } &> /dev/null
 
@@ -49,8 +50,14 @@ then
 	#
 	#
 	#
-	if cmp -s "test_func1_expected" "test_func1_out"
+	if cmp -s "outputs/test_func1_expected" "outputs/test_func1_out"
 	then
+		if ! cmp -s "outputs/test_func1_expected" "outputs/test_func1_out_sa"
+		then
+			echo -e " [${RED}NOT PASSED${NC}] (static analysis differ from expected output)"
+			exit 1
+		fi
+
 		echo -e " [${GREEN}PASSED${NC}]"
 
 		if [ -x "$(command -v valgrind)" ]
@@ -58,9 +65,25 @@ then
 			echo -n "Valgrind tests..."
 
 			{
-				valgrind --leak-check=full --error-exitcode=1\
+				valgrind\
+					--leak-check=full\
+					--suppressions=pbd.supp\
+					--errors-for-leak-kinds=all\
+					--error-exitcode=1\
 					"$PBD_FOLDER"/pbd test func1 &&\
-				valgrind --leak-check=full --error-exitcode=1\
+
+				valgrind\
+					--leak-check=full\
+					--suppressions=pbd.supp\
+					--errors-for-leak-kinds=all\
+					--error-exitcode=1\
+					"$PBD_FOLDER"/pbd test func1 -S &&\
+
+				valgrind\
+					--leak-check=full\
+					--suppressions=pbd.supp\
+					--errors-for-leak-kinds=all\
+					--error-exitcode=1\
 					"$PBD_FOLDER"/pbd test factorial
 			} &> /dev/null
 
@@ -68,13 +91,32 @@ then
 			then
 				echo -e " [${GREEN}PASSED${NC}]"
 			else
-				echo -e " [${RED}NOT PASSED${NC}]"
+				echo -e " [${RED}NOT PASSED${NC}] (memory leaks)"
 				exit 1
 			fi
 		fi
-		exit 0
 	else
-		echo -e " [${RED}NOT PASSED${NC}]"
+		echo -e " [${RED}NOT PASSED${NC}] (normal analysis differ from expected output)"
 		exit 1
 	fi
+else
+	echo -e " [${RED}NOT PASSED${NC}] (execution error)"
+	exit 1
+fi
+
+# Run static analysis tests
+echo -n "Static parsing analysis tests..."
+
+"$PBD_FOLDER"/pbd test static_analysis_func3 -d -S -D STATIC_ANALYSIS |\
+	grep "===static=analysis===" > outputs/test_func3_out_sa
+
+if [ $? -eq 0 ]
+then
+	if cmp -s "outputs/test_func3_expected_sa" "outputs/test_func3_out_sa"
+	then
+		echo -e " [${GREEN}PASSED${NC}]"
+	fi
+else
+	echo -e " [${RED}NOT PASSED${NC}]"
+	exit 1
 fi

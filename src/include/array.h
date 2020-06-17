@@ -53,6 +53,8 @@
 	extern void* array_get(struct array **array, size_t pos, void **e);
 	extern void *array_get_last(struct array **array, void **e);
 	extern size_t array_size(struct array **array);
+	extern int array_sort(struct array **ar,
+		int (*cmp)(const void*,const void*));
 	extern int array_selftest(void);
 
 #endif /* ARRAY_UTILS_H */

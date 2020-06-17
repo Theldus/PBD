@@ -34,7 +34,7 @@
  *
  * @return Returns a breakpoint list.
  */
-struct hashtable *bp_createlist(struct array *lines, pid_t pid)
+struct hashtable *bp_createlist(struct array *lines)
 {
 	struct hashtable *breakpoints; /* Breakpoints list. */
 	struct breakpoint *bp;         /* Breakpoint.       */
@@ -53,14 +53,11 @@ struct hashtable *bp_createlist(struct array *lines, pid_t pid)
 		/* Allocates a new break point. */
 		bp = malloc(sizeof(struct breakpoint));
 		bp->addr = l->addr;
-		bp->original_byte = pt_readmemory64(pid, bp->addr) & 0xFF;
+		bp->original_byte = 0;
 		bp->line_no = l->line_no;
 
 		/* Add to our hashmap. */
 		hashtable_add(&breakpoints, (void*)bp->addr, bp);
-
-		/* Insert breakpoint. */
-		bp_insertbreakpoint(bp, pid);
 	}
 
 	return (breakpoints);
@@ -113,6 +110,39 @@ int bp_insertbreakpoint(struct breakpoint *bp, pid_t child)
 	insn = pt_readmemory64(child, bp->addr);
 	insn = (insn & ~0xFF) | BP_OPCODE;
 	pt_writememory64(child, bp->addr, insn);
+
+	return (0);
+}
+
+/**
+ * Insert breakpoints into the child process memory.
+ *
+ * @param bp Breakpoints list.
+ * @param child Child process.
+ *
+ * @return Returns 0 if success and a negative number
+ * otherwise.
+ *
+ * @note This function should not be confused with his
+ * sister bp_insertbreakpoint() (singular) that adds
+ * a single breakpoint into memory.
+ */
+int bp_insertbreakpoints(struct hashtable *bp, pid_t child)
+{
+	struct breakpoint *b_k; /* Current breakpoint key.   */
+	struct breakpoint *b_v; /* Current breakpoint value. */
+	((void)b_k);
+
+	/* If invalid. */
+	if (bp == NULL)
+		return (-1);
+
+	HASHTABLE_FOREACH(bp, b_k, b_v,
+	{
+		b_v->original_byte = pt_readmemory64(child, b_v->addr) & 0xFF;
+		if (bp_insertbreakpoint(b_v, child))
+			return (-1);
+	});
 
 	return (0);
 }
