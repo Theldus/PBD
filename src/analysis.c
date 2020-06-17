@@ -35,15 +35,6 @@ static struct scope *f_scope;
 static const char *function;
 static const char *filename;
 
-/*
- * Line start and line end are grabbed from the dwarf
- * analysis from the ELF file. Note that the line start
- * and line end is relative to the start and end lines of
- * the function compound statement.
- */
-static int func_line_start;
-static int func_line_end;
-
 /**
  * Hash table breakpoints list.
  */
@@ -669,7 +660,6 @@ struct hashtable *static_analysis(const char *file, const char *func,
 
 	/* Last line. */
 	line = array_get(&lines_l, array_size(&lines_l) - 1, NULL);
-	func_line_end = line->line_no;
 
 	/* Allocate our second breakpoint. */
 	b = malloc(sizeof(struct breakpoint));
