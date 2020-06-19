@@ -131,4 +131,4 @@ clean:
 	@rm -f $(OBJ) pbd
 	@$(MAKE) clean -C tests/
 	@$(MAKE) clean -C benchs/
-	@$(MAKE) clean -C sparse/
+	@$(MAKE) clean -C sparse/ HAVE_SQLITE=no
