@@ -538,6 +538,7 @@ int static_analysis_init(void)
 	array_add(&analysis_arguments.args, "pbd");
 	array_add(&analysis_arguments.args, "-Wno-strict-prototypes");
 	array_add(&analysis_arguments.args, "-Wno-decl");
+	array_add(&analysis_arguments.args, "-Wno-newline-eof");
 	return (0);
 }
 
@@ -586,15 +587,16 @@ void static_analysis_finish(void)
 	 * [0] 1st: pbd
 	 * [1] 2nd: -Wno-strict-prototypes
 	 * [2] 3rd: -Wno-decl
+	 * [3] 4th: -Wno-newline-eof
 	 * [.] (optional arguments here)
-	 * [3] 4th: filename
-	 * [4] 5th: (NULL)
+	 * [4] 4th: filename
+	 * [5] 5th: (NULL)
 	 * lets deallocate them.
 	 */
-	if (args_count > 5)
+	if (args_count > 6)
 	{
-		args_end = (args_count - 5) + 3;
-		for (size_t i = 3; i < args_end; i++)
+		args_end = (args_count - 6) + 4;
+		for (size_t i = 4; i < args_end; i++)
 			free( array_get(&analysis_arguments.args, i, NULL) );
 	}
 	array_finish(&analysis_arguments.args);
