@@ -121,6 +121,16 @@ int setup(const char *file, const char *function)
 		line_output = line_detailed_printer;
 	}
 
+	/* Check if static analysis enabled. */
+	if (args.flags & FLG_STATIC_ANALYSIS &&
+		(!filename || access(filename, R_OK) == -1))
+	{
+		fprintf(stderr, "PBD: Source code (%s) not found!, static analysis (-S)"
+			"\nexpects the source code is available!\n", filename);
+		finish();
+		exit(EXIT_FAILURE);
+	}
+
 	depth = 0;
 
 	/*
