@@ -37,8 +37,19 @@ LDFLAGS  = -ldwarf -lm
 
 # Machine architecture
 ARCH := $(shell uname -m)
-ifneq ($(ARCH), x86_64)
-$(error PBD currently only supports x86_64 architecture!)
+ifeq ($(ARCH), x86_64)
+    ifneq ($(filter -m32,$(CFLAGS)),)
+        $(warning Enabling cross-compiling mode (x86_64 building 32 bit...))
+        CFLAGS += -DTARGET_IA32
+    else
+        CFLAGS += -DTARGET_AMD64
+    endif
+else
+    ifneq ($(filter %86,$(ARCH)),)
+        CFLAGS += -DTARGET_IA32
+    else
+        $(error PBD currently only supports x86/x86_64 architectures!)
+    endif
 endif
 
 INCLUDE += -I $(CURDIR)/arch/$(ARCH)/
