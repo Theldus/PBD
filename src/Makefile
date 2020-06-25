@@ -69,9 +69,9 @@ ifeq ($(ARCH), x86_64)
 
 	ifeq ($(AVX2_SUPPORT), yes)
 		CFLAGS += -DCAN_BUILD_AVX2
-		ASM_SRC += $(wildcard arch/x86_64/*.S)
+		ASM_SRC += $(wildcard arch/x86_64/asm/*.S)
 	else
-		ASM_SRC += $(wildcard arch/x86_64/sse2.S)
+		ASM_SRC += $(wildcard arch/x86_64/asm/sse2.S)
 	endif
 endif
 
