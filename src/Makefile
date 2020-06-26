@@ -40,13 +40,13 @@ ARCH := $(shell uname -m)
 ifeq ($(ARCH), x86_64)
     ifneq ($(filter -m32,$(CFLAGS)),)
         $(warning Enabling cross-compiling mode (x86_64 building 32 bit...))
-        CFLAGS += -DTARGET_IA32
+        ARCH = x86
     else
-        CFLAGS += -DTARGET_AMD64
+        ARCH = x86_64
     endif
 else
     ifneq ($(filter %86,$(ARCH)),)
-        CFLAGS += -DTARGET_IA32
+        ARCH = x86
     else
         $(error PBD currently only supports x86/x86_64 architectures!)
     endif
