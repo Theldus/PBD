@@ -26,6 +26,10 @@
 #include "util.h"
 
 /**
+ * Architecture independent ptrace helper functions.
+ */
+
+/**
  * @brief Creates a new process and executes a file
  * pointed to by @p file.
  *
@@ -87,63 +91,6 @@ int pt_continue_single_step(pid_t child)
 {
 	ptrace(PTRACE_SINGLESTEP, child, NULL, NULL);
 	return (0);
-}
-
-/**
- * @brief Reads the current program counter (RIP in x86_64) from
- * the child process.
- *
- * @param child Child process.
- *
- * @return Returns the child program counter.
- */
-uint64_t pt_readregister_pc(pid_t child)
-{
-	return (ptrace(PTRACE_PEEKUSER, child, 8 * RIP, NULL));
-}
-
-/**
- * @brief Sets the program counter @p pc for the specified
- * @p child.
- *
- * @param child Child process.
- * @param pc New program counter.
- */
-void pt_setregister_pc(pid_t child, uint64_t pc)
-{
-	struct user_regs_struct regs;
-	ptrace(PTRACE_GETREGS, child, NULL, &regs);
-	regs.rip = pc;
-	ptrace(PTRACE_SETREGS, child, NULL, &regs);
-}
-
-/**
- * @brief Reads the current base pointer (RBP in x86_64) from
- * the child process.
- *
- * @param child Child process.
- *
- * @return Returns the child base pointer.
- */
-uint64_t pt_readregister_bp(pid_t child)
-{
-	return (ptrace(PTRACE_PEEKUSER, child, 8 * RBP, NULL));
-}
-
-/**
- * @brief Considering the child process is inside
- * the function prologue, retrieves the returning
- * address.
- *
- * @param child Child process.
- *
- * @return Returns the 'return' address.
- */
-uint64_t pt_readreturn_address(pid_t child)
-{
-	uint64_t sp;
-	sp = ptrace(PTRACE_PEEKUSER, child, 8 * RSP, NULL);
-	return (ptrace(PTRACE_PEEKDATA, child, sp, NULL));
 }
 
 /**
