@@ -52,6 +52,7 @@ else
     endif
 endif
 
+INCLUDE += -I $(CURDIR)/arch/
 INCLUDE += -I $(CURDIR)/arch/$(ARCH)/
 C_SRC =  $(wildcard *.c)
 C_SRC += $(wildcard arch/$(ARCH)/*.c)

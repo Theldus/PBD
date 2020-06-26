@@ -389,7 +389,7 @@ static void dump_all(const char *prg_name)
 	HASHTABLE_FOREACH(breakpoints, b_k, b_v,
 	{
 		printf(
-			"    Breakpoint #%03d, line: %03d / addr: %" PRIx64
+			"    Breakpoint #%03d, line: %03d / addr: %" PRIxPTR
 			" / orig_byte: %" PRIx64"\n",
 			i++,
 			b_v->line_no,

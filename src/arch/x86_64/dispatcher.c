@@ -44,18 +44,18 @@
 static void __cpuid(uint32_t eax, uint32_t ecx, uint32_t* abcd)
 {
 	uint32_t ebx, edx;
-    ebx = 0;
-    edx = 0;
+	ebx = 0;
+	edx = 0;
 	__asm__ __volatile__
 	(
 		"cpuid"
 		: "+b" (ebx), "+a" (eax), "+c" (ecx), "=d" (edx)
 	);
 
-    abcd[0] = eax;
-    abcd[1] = ebx;
-    abcd[2] = ecx;
-    abcd[3] = edx;
+	abcd[0] = eax;
+	abcd[1] = ebx;
+	abcd[2] = ecx;
+	abcd[3] = edx;
 }
 
 /**
@@ -65,8 +65,8 @@ static void __cpuid(uint32_t eax, uint32_t ecx, uint32_t* abcd)
  */
 int check_xcr0()
 {
-    uint32_t xcr0;
-    __asm__ __volatile__
+	uint32_t xcr0;
+	__asm__ __volatile__
 	(
 		"xgetbv"
 		: "=a" (xcr0)
@@ -85,26 +85,26 @@ int check_xcr0()
  */
 int supports_avx2()
 {
-    uint32_t abcd[4];
+	uint32_t abcd[4];
 
 	/* OSXSAVE bit, EAX = 01h, ECX = 0h, result in ECX. */
-    __cpuid(1, 0, abcd);
-    if ((abcd[2] & OSXSAVE_MASK) != OSXSAVE_MASK)
-        return (0);
+	__cpuid(1, 0, abcd);
+	if ((abcd[2] & OSXSAVE_MASK) != OSXSAVE_MASK)
+		return (0);
 
 	/* AVX and SSE must be enabled. */
-    if (!check_xcr0())
-        return (0);
+	if (!check_xcr0())
+		return (0);
 
 	/*
-     * Structured Extended Feature Flags
+	 * Structured Extended Feature Flags
 	 * AVX2 Support, EAX = 07h, ECX = 0h, result in EBX, bit 5.
 	 */
 	__cpuid(7, 0, abcd);
 	if ((abcd[1] & AVX2_MASK) != AVX2_MASK)
-        return (0);
+		return (0);
 
-    return (1);
+	return (1);
 }
 
 /**
@@ -113,11 +113,11 @@ int supports_avx2()
  */
 void select_cpu(void)
 {
-    /* If AVX2 Enabled. */
+	/* If AVX2 Enabled. */
 #ifdef CAN_BUILD_AVX2
-    if (supports_avx2())
-        offmemcmp = offmemcmp_avx2;
-    else
+	if (supports_avx2())
+		offmemcmp = offmemcmp_avx2;
+	else
 #endif
-        offmemcmp = offmemcmp_sse2;
+		offmemcmp = offmemcmp_sse2;
 }

@@ -22,13 +22,24 @@
  * SOFTWARE.
  */
 
-#ifndef CPUDISP_AMD64_H
-#define CPUDISP_AMD64_H
+#ifndef CPUDISP_H
+#define CPUDISP_H
 
-	/* Extern declarations. */
-	int64_t offmemcmp_avx2(void *src, void *dest, size_t block_size,
-		size_t length);
-	int64_t offmemcmp_sse2(void *src, void *dest, size_t block_size,
-		size_t length);
+	#include "variable.h"
 
-#endif /* CPUDISP_AMD64_H */
+#if defined(__x86_64__)
+#include "cpudisp_amd64.h"
+#endif
+
+	/* CPU dispatcher. */
+#if defined(__x86_64__)
+	void select_cpu(void);
+#else
+	/* Generic dispatcher for any arch. */
+	inline void select_cpu(void)
+	{
+		offmemcmp = offmemcmp_generic;
+	}
+#endif
+
+#endif /* CPUDISP_H */
