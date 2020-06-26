@@ -40,7 +40,7 @@
  *
  * @return Returns the child program counter.
  */
-uint64_t pt_readregister_pc(pid_t child)
+uintptr_t pt_readregister_pc(pid_t child)
 {
 	return (ptrace(PTRACE_PEEKUSER, child, 8 * RIP, NULL));
 }
@@ -52,7 +52,7 @@ uint64_t pt_readregister_pc(pid_t child)
  * @param child Child process.
  * @param pc New program counter.
  */
-void pt_setregister_pc(pid_t child, uint64_t pc)
+void pt_setregister_pc(pid_t child, uintptr_t pc)
 {
 	struct user_regs_struct regs;
 	ptrace(PTRACE_GETREGS, child, NULL, &regs);
@@ -68,7 +68,7 @@ void pt_setregister_pc(pid_t child, uint64_t pc)
  *
  * @return Returns the child base pointer.
  */
-uint64_t pt_readregister_bp(pid_t child)
+uintptr_t pt_readregister_bp(pid_t child)
 {
 	return (ptrace(PTRACE_PEEKUSER, child, 8 * RBP, NULL));
 }
@@ -82,9 +82,9 @@ uint64_t pt_readregister_bp(pid_t child)
  *
  * @return Returns the 'return' address.
  */
-uint64_t pt_readreturn_address(pid_t child)
+uintptr_t pt_readreturn_address(pid_t child)
 {
-	uint64_t sp;
+	uintptr_t sp;
 	sp = ptrace(PTRACE_PEEKUSER, child, 8 * RSP, NULL);
 	return (ptrace(PTRACE_PEEKDATA, child, sp, NULL));
 }

@@ -37,7 +37,7 @@
 		struct array *vars;
 
 		/* Return address. */
-		uint64_t return_addr;
+		uintptr_t return_addr;
 	};
 
 	/* Amount of spaces to indent. */

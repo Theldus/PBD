@@ -488,7 +488,7 @@ uint64_t hashtable_splitmix64_based(const void *key, size_t size)
 	uint64_t x; /* Hash key. */
 	((void)size);
 
-	x = (uint64_t)key;
+	x = (uint64_t)((uintptr_t)key);
 	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
 	x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
 	x = x ^ (x >> 31);
@@ -581,7 +581,7 @@ uint64_t hashtable_MurMur3_hash(const void *key, size_t size)
 	/* Body. */
 	for(int i = 0; i < nblocks; i++)
 	{
-		uint64_t k1 = ((uint64_t) key >> (2 * i)) & 0xff;
+		uint64_t k1 = ( ( (uint64_t) ((uintptr_t) key) ) >> (2 * i) ) & 0xff;
 		uint64_t k2 = rotl64(k1, 13);
 
 		k1 *= c1;
@@ -690,7 +690,7 @@ void hashtable_print_stats(struct hashtable **ht)
 #if BUCKET_AS_INTEGER
 				printf("%d ", *((int *)l_ptr->value) );
 #else
-				printf("0x%" PRIx64 " ", (uint64_t)l_ptr->value);
+				printf("%p ", l_ptr->value);
 #endif
 #endif
 			}
@@ -769,8 +769,8 @@ static int hashtable_integritytest(struct hashtable *ht)
 		/* Attempt to get the number. */
 		if ( ( num = hashtable_get(&ht, &numbers[i]) ) == NULL )
 		{
-			fprintf(stderr, "hashtable: unable to get key: %" PRIx64 ", iter: %d\n",
-				(uint64_t)&numbers[i], i);
+			fprintf(stderr, "hashtable: unable to get key: %p, iter: %d\n",
+				&numbers[i], i);
 			goto out1;
 		}
 

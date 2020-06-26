@@ -103,7 +103,7 @@ int pt_continue_single_step(pid_t child)
  * @return Returns a uint64_t containing a value for the specified
  * address.
  */
-uint64_t pt_readmemory64(pid_t child, uint64_t addr)
+uint64_t pt_readmemory64(pid_t child, uintptr_t addr)
 {
 	uint64_t data; /* Data returned. */
 
@@ -129,7 +129,7 @@ uint64_t pt_readmemory64(pid_t child, uint64_t addr)
  * @param child Child process.
  * @param addr Address to be written.
  */
-void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
+void pt_writememory64(pid_t child, uintptr_t addr, uint64_t data)
 {
 	/* Expected in 64-bit systems. */
 	if (sizeof(long) == 8)
@@ -158,7 +158,7 @@ void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
  * @note Its up to the caller function to free the returned
  * pointer.
  */
-char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
+char *pt_readmemory(pid_t child, uintptr_t addr, size_t len)
 {
 	char *data;      /* Return pointer.   */
 
@@ -241,7 +241,7 @@ char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
  * @param data Data to be write.
  * @param len How many bytes will be written.
  */
-void pt_writememory(pid_t child, uint64_t addr, char *data, size_t len)
+void pt_writememory(pid_t child, uintptr_t addr, char *data, size_t len)
 {
 	int i;         /* Address index.    */
 	int j;         /* Block counter.    */

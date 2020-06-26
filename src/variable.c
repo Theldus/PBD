@@ -53,7 +53,7 @@ void var_dump(struct array *vars)
 		if (v->scope == VLOCAL)
 			printf("        location: %d\n", (int)v->location.fp_offset);
 		else
-			printf("        location: %" PRIx64 "\n", v->location.address);
+			printf("        location: %" PRIxPTR "\n", v->location.address);
 
 		printf("        size (bytes): %zu\n", v->byte_size);
 		printf("        var type:     %d\n", v->type.var_type);
@@ -361,15 +361,8 @@ int var_deallocate_context(
  */
 int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 {
-	uint64_t base_pointer; /* Base Pointer Value.            */
-	uint64_t location;     /* Base Pointer Relative Address. */
-
-	/*
-	 * Very important note:
-	 * Since I'm assuming that this code will run (at least initially)
-	 * in x86_64 archs, sizeof(long) must be 64 bits.
-	 */
-	COMPILE_TIME_ASSERT(sizeof(long) == 8);
+	uintptr_t base_pointer; /* Base Pointer Value.            */
+	uintptr_t location;     /* Base Pointer Relative Address. */
 
 	/*
 	 * If a primitive type, read a u64 should be

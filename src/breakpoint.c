@@ -70,7 +70,7 @@ struct hashtable *bp_createlist(struct array *lines)
  * @param bp Breakpoint list.
  * @param child Child process.
  */
-int bp_createbreakpoint(uint64_t addr, struct hashtable *bp, pid_t child)
+int bp_createbreakpoint(uintptr_t addr, struct hashtable *bp, pid_t child)
 {
 	struct breakpoint *b; /* Breakpoint. */
 
@@ -158,7 +158,7 @@ int bp_insertbreakpoints(struct hashtable *bp, pid_t child)
  * or NULL otherwise.
  */
 struct breakpoint *bp_findbreakpoint(
-	uint64_t addr, struct hashtable *bp_list)
+	uintptr_t addr, struct hashtable *bp_list)
 {
 	struct breakpoint *b;
 	b = hashtable_get(&bp_list, (void*)addr);

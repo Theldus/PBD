@@ -53,7 +53,7 @@
 		const char *file,
 		const char *func,
 		struct array *lines,
-		uint64_t firstbreak);
+		uintptr_t firstbreak);
 
 
 #endif /* ANALYSIS_H */

@@ -619,7 +619,7 @@ void static_analysis_finish(void)
  * does, but in a 'smarter' way.
  */
 struct hashtable *static_analysis(const char *file, const char *func,
-	struct array *lines_l, uint64_t firstbreak)
+	struct array *lines_l, uintptr_t firstbreak)
 {
 	char *file_cur;
 	struct dw_line *line;

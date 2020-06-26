@@ -229,7 +229,7 @@ void do_analysis(const char *file, const char *function, char **argv)
 	while (pt_waitchild() != PT_CHILD_EXIT)
 	{
 		int current_depth;
-		uint64_t pc;
+		uintptr_t pc;
 		struct breakpoint *bp;
 
 		f  = array_get_last(&context, NULL);

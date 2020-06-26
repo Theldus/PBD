@@ -45,20 +45,20 @@
 	 */
 	struct breakpoint
 	{
-		uint64_t addr;
+		uintptr_t addr;
 		uint8_t original_byte;
 		unsigned line_no;
 	};
 
 	extern struct hashtable *bp_createlist(struct array *lines);
 
-	extern int bp_createbreakpoint(uint64_t addr, struct hashtable *bp, pid_t child);
+	extern int bp_createbreakpoint(uintptr_t addr, struct hashtable *bp, pid_t child);
 
 	extern int bp_insertbreakpoint(struct breakpoint *bp, pid_t child);
 
 	extern int bp_insertbreakpoints(struct hashtable *bp, pid_t child);
 
-	extern struct breakpoint *bp_findbreakpoint(uint64_t addr,
+	extern struct breakpoint *bp_findbreakpoint(uintptr_t addr,
 		struct hashtable *bp_list);
 
 	extern void bp_skipbreakpoint(struct breakpoint *bp, pid_t child);
