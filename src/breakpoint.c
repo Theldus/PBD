@@ -102,7 +102,7 @@ int bp_createbreakpoint(uintptr_t addr, struct hashtable *bp, pid_t child)
  */
 int bp_insertbreakpoint(struct breakpoint *bp, pid_t child)
 {
-	long insn; /* Address opcode. */
+	uint64_t insn; /* Address opcode. */
 
 	if (bp->addr == 0)
 		return (-1);

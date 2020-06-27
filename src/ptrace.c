@@ -105,7 +105,8 @@ int pt_continue_single_step(pid_t child)
  */
 uint64_t pt_readmemory64(pid_t child, uintptr_t addr)
 {
-	uint64_t data; /* Data returned. */
+	uint32_t hi; /* Data returned. */
+	uint32_t lo; /* Data returned. */
 
 	/* Expected in 64-bit systems. */
 	if (sizeof(long) == 8)
@@ -114,9 +115,9 @@ uint64_t pt_readmemory64(pid_t child, uintptr_t addr)
 	/* Expected in 32-bit systems. */
 	if (sizeof(long) == 4)
 	{
-		data  =  ptrace(PTRACE_PEEKDATA, child, addr, NULL);
-		data |= ((uint64_t) ptrace(PTRACE_PEEKDATA, child, addr + 4, NULL)) << 32;
-		return (data);
+		lo = ptrace(PTRACE_PEEKDATA, child, addr, NULL);
+		hi = ptrace(PTRACE_PEEKDATA, child, addr + 4, NULL);
+		return ( ((uint64_t)hi) << 32 | lo );
 	}
 	else
 		QUIT(EXIT_FAILURE, "unexpected long size: %zu", sizeof(long));
