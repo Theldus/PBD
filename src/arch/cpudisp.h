@@ -36,7 +36,7 @@
 	void select_cpu(void);
 #else
 	/* Generic dispatcher for any arch. */
-	inline void select_cpu(void)
+	inline static void select_cpu(void)
 	{
 		offmemcmp = offmemcmp_generic;
 	}
