@@ -156,6 +156,9 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 				case 8:
 					snprintf(buffer, BS, "%f", v->d_value);
 					break;
+				case 12:
+					snprintf(buffer, BS, "%Lf", v->ld_value);
+					break;
 				case 16:
 					snprintf(buffer, BS, "%Lf", v->ld_value);
 					break;
@@ -380,8 +383,11 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 			{
 				/*
 				 * Long double types?.
+				 *
+				 * Obs: Long double on 32-bit may have 12-bytes, instead
+				 * of 16.
 				 */
-				if (v->byte_size == 16)
+				if (v->byte_size == 16 || v->byte_size == 12)
 				{
 					value->u64_value[0] = pt_readmemory64(child, v->location.address);
 					value->u64_value[1] = pt_readmemory64(child, v->location.address + 8);
@@ -404,7 +410,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 				/*
 				 * Long double types?.
 				 */
-				if (v->byte_size == 16)
+				if (v->byte_size == 16 || v->byte_size == 12)
 				{
 					value->u64_value[0] = pt_readmemory64(child, location);
 					value->u64_value[1] = pt_readmemory64(child, location + 8);
