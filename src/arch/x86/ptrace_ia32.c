@@ -54,10 +54,7 @@ uintptr_t pt_readregister_pc(pid_t child)
  */
 void pt_setregister_pc(pid_t child, uintptr_t pc)
 {
-	struct user_regs_struct regs;
-	ptrace(PTRACE_GETREGS, child, NULL, &regs);
-	regs.eip = pc;
-	ptrace(PTRACE_SETREGS, child, NULL, &regs);
+	ptrace(PTRACE_POKEUSER, child, 4 * EIP, pc);
 }
 
 /**
