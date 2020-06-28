@@ -94,6 +94,42 @@ int pt_continue_single_step(pid_t child)
 }
 
 /**
+ * @brief Reads sizeof(long) bytes from a given process
+ * @p child at address @p addr.
+ *
+ * @param child Child process.
+ * @param addr Address to be read.
+ *
+ * @return Returns a long containing a value for the specified
+ * address.
+ *
+ * @note The rationale behind 'long' is simple: while
+ * handling breakpoints, PBD needs to read and write a
+ * single byte of memory multiples times, and since the
+ * minor amount of bytes ptrace() can read/write is long,
+ * let us read/write in multiples of long.
+ */
+long pt_readmemory_long(pid_t child, uintptr_t addr)
+{
+	return (ptrace(PTRACE_PEEKDATA, child, addr, NULL));
+}
+
+/**
+ * @brief Writes a 'long' value into a given process @p child
+ * and address @p addr.
+ *
+ * @param child Child process.
+ * @param addr Address to be written.
+ * @param data Value to be written.
+ *
+ * @note See pt_readmemory_long() notes.
+ */
+void pt_writememory_long(pid_t child, uintptr_t addr, long data)
+{
+	ptrace(PTRACE_POKEDATA, child, addr, data);
+}
+
+/**
  * @brief Reads a uint64_t value (usually 64-bit in x86_64) from
  * a given processs @p child and address @p addr.
  *
@@ -105,8 +141,12 @@ int pt_continue_single_step(pid_t child)
  */
 uint64_t pt_readmemory64(pid_t child, uintptr_t addr)
 {
-	uint32_t hi; /* Data returned. */
-	uint32_t lo; /* Data returned. */
+	/* Endianness agnostic, I hope so. */
+	union
+	{
+		uint32_t v[2];
+		uint64_t value;
+	} u;
 
 	/* Expected in 64-bit systems. */
 	if (sizeof(long) == 8)
@@ -115,9 +155,9 @@ uint64_t pt_readmemory64(pid_t child, uintptr_t addr)
 	/* Expected in 32-bit systems. */
 	if (sizeof(long) == 4)
 	{
-		lo = ptrace(PTRACE_PEEKDATA, child, addr, NULL);
-		hi = ptrace(PTRACE_PEEKDATA, child, addr + 4, NULL);
-		return ( ((uint64_t)hi) << 32 | lo );
+		u.v[0] = ptrace(PTRACE_PEEKDATA, child, addr, NULL);
+		u.v[1] = ptrace(PTRACE_PEEKDATA, child, addr + 4, NULL);
+		return (u.value);
 	}
 	else
 		QUIT(EXIT_FAILURE, "unexpected long size: %zu", sizeof(long));
@@ -129,9 +169,17 @@ uint64_t pt_readmemory64(pid_t child, uintptr_t addr)
  *
  * @param child Child process.
  * @param addr Address to be written.
+ * @param data Value to be written.
  */
 void pt_writememory64(pid_t child, uintptr_t addr, uint64_t data)
 {
+	/* Endianness agnostic, I hope so. */
+	union
+	{
+		uint32_t v[2];
+		uint64_t value;
+	} u;
+
 	/* Expected in 64-bit systems. */
 	if (sizeof(long) == 8)
 		ptrace(PTRACE_POKEDATA, child, addr, data);
@@ -139,8 +187,9 @@ void pt_writememory64(pid_t child, uintptr_t addr, uint64_t data)
 	/* Expected in 32-bit systems. */
 	else if (sizeof(long) == 4)
 	{
-		ptrace(PTRACE_POKEDATA, child, addr    , data);
-		ptrace(PTRACE_POKEDATA, child, addr + 4, ((data >> 32) & 0xFFFFFFFF));
+		u.value = data;
+		ptrace(PTRACE_POKEDATA, child, addr    , u.v[0]);
+		ptrace(PTRACE_POKEDATA, child, addr + 4, u.v[1]);
 	}
 	else
 		QUIT(EXIT_FAILURE, "unexpected long size: %zu", sizeof(long));

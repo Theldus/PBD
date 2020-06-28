@@ -81,7 +81,7 @@ int bp_createbreakpoint(uintptr_t addr, struct hashtable *bp, pid_t child)
 	/* Allocate our new breakpoint. */
 	b = malloc(sizeof(struct breakpoint));
 	b->addr = addr;
-	b->original_byte = pt_readmemory64(child, b->addr) & 0xFF;
+	b->original_byte = pt_readmemory_long(child, b->addr) & 0xFF;
 	b->line_no = 0;
 
 	/* Add to our list. */
@@ -102,14 +102,14 @@ int bp_createbreakpoint(uintptr_t addr, struct hashtable *bp, pid_t child)
  */
 int bp_insertbreakpoint(struct breakpoint *bp, pid_t child)
 {
-	uint64_t insn; /* Address opcode. */
+	long insn; /* Address opcode. */
 
 	if (bp->addr == 0)
 		return (-1);
 
-	insn = pt_readmemory64(child, bp->addr);
+	insn = pt_readmemory_long(child, bp->addr);
 	insn = (insn & ~0xFF) | BP_OPCODE;
-	pt_writememory64(child, bp->addr, insn);
+	pt_writememory_long(child, bp->addr, insn);
 
 	return (0);
 }
@@ -139,7 +139,7 @@ int bp_insertbreakpoints(struct hashtable *bp, pid_t child)
 
 	HASHTABLE_FOREACH(bp, b_k, b_v,
 	{
-		b_v->original_byte = pt_readmemory64(child, b_v->addr) & 0xFF;
+		b_v->original_byte = pt_readmemory_long(child, b_v->addr) & 0xFF;
 		if (bp_insertbreakpoint(b_v, child))
 			return (-1);
 	});
@@ -175,15 +175,15 @@ struct breakpoint *bp_findbreakpoint(
  */
 void bp_skipbreakpoint(struct breakpoint *bp, pid_t child)
 {
-	uint64_t insn;
+	long insn;
 
 	/* If a valid breakpoint, restart instruction. */
 	pt_setregister_pc(child, bp->addr);
 
 	/* Insert the original instruction. */
-	insn = pt_readmemory64(child, bp->addr);
+	insn = pt_readmemory_long(child, bp->addr);
 	insn = (insn & ~0xFF) | bp->original_byte;
-	pt_writememory64(child, bp->addr, insn);
+	pt_writememory_long(child, bp->addr, insn);
 
 	/* Execute and wait. */
 	pt_continue_single_step(child);
@@ -191,7 +191,7 @@ void bp_skipbreakpoint(struct breakpoint *bp, pid_t child)
 
 	/* Enables the breakpoint again. */
 	insn = (insn & ~0xFF) | BP_OPCODE;
-	pt_writememory64(child, bp->addr, insn);
+	pt_writememory_long(child, bp->addr, insn);
 }
 
 /**
