@@ -30,7 +30,10 @@ INCLUDE_SPARSE += $(CURDIR)/sparse/
 # uses a different path for libdwarf, so lets use it.
 INCLUDE_DWARF = /usr/include/libdwarf/
 
-CFLAGS   = -Wall -Wextra -Werror
+# Flags
+SPARSECFLAGS = -O2 -g
+TMP     := $(CFLAGS)
+CFLAGS   = $(TMP) -Wall -Wextra -Werror
 CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF) -I $(INCLUDE_SPARSE)
 CFLAGS  += -std=c99 -g -O3
 LDFLAGS  = -ldwarf -lm
@@ -41,6 +44,8 @@ ifeq ($(ARCH), x86_64)
     ifneq ($(filter -m32,$(CFLAGS)),)
         $(warning Enabling cross-compiling mode (x86_64 building 32 bit...))
         ARCH = x86
+        SPARSECFLAGS += -m32
+        EXTRAFLAGS = -m32
     else
         ARCH = x86_64
     endif
@@ -104,7 +109,7 @@ all: pbd
 
 # Sparse library
 sparse/libsparse.a: sparse/Makefile
-	$(MAKE) -C sparse/ HAVE_SQLITE=no libsparse.a
+	$(MAKE) -C sparse/ HAVE_SQLITE=no CFLAGS="$(SPARSECFLAGS)" libsparse.a
 
 sparse/Makefile:
 	$(warning Sparse submodule not fetched, fetching...)
@@ -117,11 +122,11 @@ pbd: $(OBJ) sparse/libsparse.a
 
 # Tests
 test: pbd
-	$(MAKE) -C tests/
+	$(MAKE) -C tests/ CFLAGS="$(EXTRAFLAGS)"
 
 # Benchs
 bench: pbd
-	$(MAKE) -C benchs/
+	$(MAKE) -C benchs/ CFLAGS="$(EXTRAFLAGS)"
 
 # Install rules
 install: pbd
