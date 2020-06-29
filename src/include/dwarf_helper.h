@@ -79,13 +79,13 @@
 		 * Points to the first byte of memory containing
 		 * the function.
 		 */
-		uint64_t low_pc;
+		uintptr_t low_pc;
 
 		/*
 		 * Points to the last by of memory containing
 		 * the function.
 		 */
-		uint64_t high_pc;
+		uintptr_t high_pc;
 
 		/*
 		 * Base pointer offset.
@@ -108,7 +108,7 @@
 	struct dw_line
 	{
 		/* Line address. */
-		uint64_t addr;
+		uintptr_t addr;
 
 		/* Line number. */
 		unsigned line_no;
@@ -204,7 +204,7 @@
 		union location
 		{
 			off_t  fp_offset;
-			uint64_t address;
+			uintptr_t address;
 		} location;
 
 		size_t byte_size;

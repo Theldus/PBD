@@ -229,7 +229,7 @@ void do_analysis(const char *file, const char *function, char **argv)
 	while (pt_waitchild() != PT_CHILD_EXIT)
 	{
 		int current_depth;
-		uint64_t pc;
+		uintptr_t pc;
 		struct breakpoint *bp;
 
 		f  = array_get_last(&context, NULL);
@@ -389,7 +389,7 @@ static void dump_all(const char *prg_name)
 	HASHTABLE_FOREACH(breakpoints, b_k, b_v,
 	{
 		printf(
-			"    Breakpoint #%03d, line: %03d / addr: %" PRIx64
+			"    Breakpoint #%03d, line: %03d / addr: %" PRIxPTR
 			" / orig_byte: %" PRIx64"\n",
 			i++,
 			b_v->line_no,

@@ -53,7 +53,7 @@ void var_dump(struct array *vars)
 		if (v->scope == VLOCAL)
 			printf("        location: %d\n", (int)v->location.fp_offset);
 		else
-			printf("        location: %" PRIx64 "\n", v->location.address);
+			printf("        location: %" PRIxPTR "\n", v->location.address);
 
 		printf("        size (bytes): %zu\n", v->byte_size);
 		printf("        var type:     %d\n", v->type.var_type);
@@ -155,6 +155,9 @@ char *var_format_value(char *buffer, union var_value *v, int encoding, size_t by
 					break;
 				case 8:
 					snprintf(buffer, BS, "%f", v->d_value);
+					break;
+				case 12:
+					snprintf(buffer, BS, "%Lf", v->ld_value);
 					break;
 				case 16:
 					snprintf(buffer, BS, "%Lf", v->ld_value);
@@ -361,15 +364,8 @@ int var_deallocate_context(
  */
 int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 {
-	uint64_t base_pointer; /* Base Pointer Value.            */
-	uint64_t location;     /* Base Pointer Relative Address. */
-
-	/*
-	 * Very important note:
-	 * Since I'm assuming that this code will run (at least initially)
-	 * in x86_64 archs, sizeof(long) must be 64 bits.
-	 */
-	COMPILE_TIME_ASSERT(sizeof(long) == 8);
+	uintptr_t base_pointer; /* Base Pointer Value.            */
+	uintptr_t location;     /* Base Pointer Relative Address. */
 
 	/*
 	 * If a primitive type, read a u64 should be
@@ -387,8 +383,11 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 			{
 				/*
 				 * Long double types?.
+				 *
+				 * Obs: Long double on 32-bit may have 12-bytes, instead
+				 * of 16.
 				 */
-				if (v->byte_size == 16)
+				if (v->byte_size == 16 || v->byte_size == 12)
 				{
 					value->u64_value[0] = pt_readmemory64(child, v->location.address);
 					value->u64_value[1] = pt_readmemory64(child, v->location.address + 8);
@@ -411,7 +410,7 @@ int var_read(union var_value *value, struct dw_variable *v, pid_t child)
 				/*
 				 * Long double types?.
 				 */
-				if (v->byte_size == 16)
+				if (v->byte_size == 16 || v->byte_size == 12)
 				{
 					value->u64_value[0] = pt_readmemory64(child, location);
 					value->u64_value[1] = pt_readmemory64(child, location + 8);

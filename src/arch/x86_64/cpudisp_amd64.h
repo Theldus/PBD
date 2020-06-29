@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2020 Davidson Francis <davidsondfgl@gmail.com>
+ * Copyright (c) 2020 Davidson Francis <davidsondfgl@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,33 +22,13 @@
  * SOFTWARE.
  */
 
-#ifndef FUNCTION_H
-#define FUNCTION_H
+#ifndef CPUDISP_AMD64_H
+#define CPUDISP_AMD64_H
 
-	#include <stdio.h>
-	#include <inttypes.h>
+	/* Extern declarations. */
+	int64_t offmemcmp_avx2(void *src, void *dest, size_t block_size,
+		size_t length);
+	int64_t offmemcmp_sse2(void *src, void *dest, size_t block_size,
+		size_t length);
 
-	/**
-	 * @brief Current function context.
-	 */
-	struct function
-	{
-		/* All variables found. */
-		struct array *vars;
-
-		/* Return address. */
-		uintptr_t return_addr;
-	};
-
-	/* Amount of spaces to indent. */
-	#define FUNCTION_INDENT_LEVEL 4
-
-	extern char *fn_get_indent(size_t depth);
-
-	extern int fn_printf(size_t depth, int extra_space, const char* fmt, ...);
-
-	extern void fn_free_indent(char *buff);
-
-	extern void fn_free(struct function *f);
-
-#endif /* BREAKPOINT_H */
+#endif /* CPUDISP_AMD64_H */

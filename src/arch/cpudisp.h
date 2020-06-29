@@ -27,13 +27,19 @@
 
 	#include "variable.h"
 
-	/* Extern declarations. */
-	int64_t offmemcmp_avx2(void *src, void *dest, size_t block_size,
-		size_t length);
-	int64_t offmemcmp_sse2(void *src, void *dest, size_t block_size,
-		size_t length);
+#if defined(__x86_64__)
+#include "cpudisp_amd64.h"
+#endif
 
 	/* CPU dispatcher. */
+#if defined(__x86_64__)
 	void select_cpu(void);
+#else
+	/* Generic dispatcher for any arch. */
+	inline static void select_cpu(void)
+	{
+		offmemcmp = offmemcmp_generic;
+	}
+#endif
 
 #endif /* CPUDISP_H */

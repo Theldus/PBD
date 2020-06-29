@@ -26,6 +26,10 @@
 #include "util.h"
 
 /**
+ * Architecture independent ptrace helper functions.
+ */
+
+/**
  * @brief Creates a new process and executes a file
  * pointed to by @p file.
  *
@@ -90,60 +94,39 @@ int pt_continue_single_step(pid_t child)
 }
 
 /**
- * @brief Reads the current program counter (RIP in x86_64) from
- * the child process.
+ * @brief Reads sizeof(long) bytes from a given process
+ * @p child at address @p addr.
  *
  * @param child Child process.
+ * @param addr Address to be read.
  *
- * @return Returns the child program counter.
- */
-uint64_t pt_readregister_pc(pid_t child)
-{
-	return (ptrace(PTRACE_PEEKUSER, child, 8 * RIP, NULL));
-}
-
-/**
- * @brief Sets the program counter @p pc for the specified
- * @p child.
- *
- * @param child Child process.
- * @param pc New program counter.
- */
-void pt_setregister_pc(pid_t child, uint64_t pc)
-{
-	struct user_regs_struct regs;
-	ptrace(PTRACE_GETREGS, child, NULL, &regs);
-	regs.rip = pc;
-	ptrace(PTRACE_SETREGS, child, NULL, &regs);
-}
-
-/**
- * @brief Reads the current base pointer (RBP in x86_64) from
- * the child process.
- *
- * @param child Child process.
- *
- * @return Returns the child base pointer.
- */
-uint64_t pt_readregister_bp(pid_t child)
-{
-	return (ptrace(PTRACE_PEEKUSER, child, 8 * RBP, NULL));
-}
-
-/**
- * @brief Considering the child process is inside
- * the function prologue, retrieves the returning
+ * @return Returns a long containing a value for the specified
  * address.
  *
- * @param child Child process.
- *
- * @return Returns the 'return' address.
+ * @note The rationale behind 'long' is simple: while
+ * handling breakpoints, PBD needs to read and write a
+ * single byte of memory multiples times, and since the
+ * minor amount of bytes ptrace() can read/write is long,
+ * let us read/write in multiples of long.
  */
-uint64_t pt_readreturn_address(pid_t child)
+long pt_readmemory_long(pid_t child, uintptr_t addr)
 {
-	uint64_t sp;
-	sp = ptrace(PTRACE_PEEKUSER, child, 8 * RSP, NULL);
-	return (ptrace(PTRACE_PEEKDATA, child, sp, NULL));
+	return (ptrace(PTRACE_PEEKDATA, child, addr, NULL));
+}
+
+/**
+ * @brief Writes a 'long' value into a given process @p child
+ * and address @p addr.
+ *
+ * @param child Child process.
+ * @param addr Address to be written.
+ * @param data Value to be written.
+ *
+ * @note See pt_readmemory_long() notes.
+ */
+void pt_writememory_long(pid_t child, uintptr_t addr, long data)
+{
+	ptrace(PTRACE_POKEDATA, child, addr, data);
 }
 
 /**
@@ -156,9 +139,14 @@ uint64_t pt_readreturn_address(pid_t child)
  * @return Returns a uint64_t containing a value for the specified
  * address.
  */
-uint64_t pt_readmemory64(pid_t child, uint64_t addr)
+uint64_t pt_readmemory64(pid_t child, uintptr_t addr)
 {
-	uint64_t data; /* Data returned. */
+	/* Endianness agnostic, I hope so. */
+	union
+	{
+		uint32_t v[2];
+		uint64_t value;
+	} u;
 
 	/* Expected in 64-bit systems. */
 	if (sizeof(long) == 8)
@@ -167,9 +155,9 @@ uint64_t pt_readmemory64(pid_t child, uint64_t addr)
 	/* Expected in 32-bit systems. */
 	if (sizeof(long) == 4)
 	{
-		data  =  ptrace(PTRACE_PEEKDATA, child, addr, NULL);
-		data |= ((uint64_t) ptrace(PTRACE_PEEKDATA, child, addr + 4, NULL)) << 32;
-		return (data);
+		u.v[0] = ptrace(PTRACE_PEEKDATA, child, addr, NULL);
+		u.v[1] = ptrace(PTRACE_PEEKDATA, child, addr + 4, NULL);
+		return (u.value);
 	}
 	else
 		QUIT(EXIT_FAILURE, "unexpected long size: %zu", sizeof(long));
@@ -181,9 +169,17 @@ uint64_t pt_readmemory64(pid_t child, uint64_t addr)
  *
  * @param child Child process.
  * @param addr Address to be written.
+ * @param data Value to be written.
  */
-void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
+void pt_writememory64(pid_t child, uintptr_t addr, uint64_t data)
 {
+	/* Endianness agnostic, I hope so. */
+	union
+	{
+		uint32_t v[2];
+		uint64_t value;
+	} u;
+
 	/* Expected in 64-bit systems. */
 	if (sizeof(long) == 8)
 		ptrace(PTRACE_POKEDATA, child, addr, data);
@@ -191,8 +187,9 @@ void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
 	/* Expected in 32-bit systems. */
 	else if (sizeof(long) == 4)
 	{
-		ptrace(PTRACE_POKEDATA, child, addr    , data);
-		ptrace(PTRACE_POKEDATA, child, addr + 4, ((data >> 32) & 0xFFFFFFFF));
+		u.value = data;
+		ptrace(PTRACE_POKEDATA, child, addr    , u.v[0]);
+		ptrace(PTRACE_POKEDATA, child, addr + 4, u.v[1]);
 	}
 	else
 		QUIT(EXIT_FAILURE, "unexpected long size: %zu", sizeof(long));
@@ -211,7 +208,7 @@ void pt_writememory64(pid_t child, uint64_t addr, uint64_t data)
  * @note Its up to the caller function to free the returned
  * pointer.
  */
-char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
+char *pt_readmemory(pid_t child, uintptr_t addr, size_t len)
 {
 	char *data;      /* Return pointer.   */
 
@@ -294,7 +291,7 @@ char *pt_readmemory(pid_t child, uint64_t addr, size_t len)
  * @param data Data to be write.
  * @param len How many bytes will be written.
  */
-void pt_writememory(pid_t child, uint64_t addr, char *data, size_t len)
+void pt_writememory(pid_t child, uintptr_t addr, char *data, size_t len)
 {
 	int i;         /* Address index.    */
 	int j;         /* Block counter.    */

@@ -779,7 +779,11 @@ static int dw_get_base_pointer_offset(struct dw_utils *dw)
 			/* Current location. */
 			lr = &llbuf[i]->ld_s[0];
 
+#if defined(__x86_64__)
 			if (lr->lr_atom == DW_OP_reg6 || lr->lr_atom == DW_OP_breg6)
+#elif defined(__i386__)
+			if (lr->lr_atom == DW_OP_reg5 || lr->lr_atom == DW_OP_breg5)
+#endif
 			{
 				/* GCC approach. */
 				if (lcnt > 1)
@@ -1172,7 +1176,7 @@ void dw_lines_dump(struct array *lines)
 	{
 		struct dw_line *l;
 		l = array_get(&lines, i, NULL);
-		printf("    line: %03d / address: %" PRIx64 " / type: %d\n",
+		printf("    line: %03d / address: %" PRIxPTR " / type: %d\n",
 			l->line_no, l->addr, l->line_type);
 	}
 }

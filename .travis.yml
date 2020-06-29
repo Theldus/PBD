@@ -2,12 +2,48 @@ dist: bionic
 sudo: required
 language: c
 
-compiler:
-  - gcc
-  - clang
+jobs:
+  include:
+    # Tests x86_64, GCC
+    - stage: "test"
+      name: "x86_64"
+      compiler: gcc
+      before_install:
+        - sudo apt-get install -y libdwarf-dev valgrind
+      script:
+        - cd src/ && make test V=1 -j$((`nproc`+1))
+        - file ./pbd
 
-before_install:
-   - sudo apt-get install -y libdwarf-dev valgrind
+    # Tests x86_64, Clang
+    - stage: "test"
+      name: "x86_64"
+      compiler: clang
+      before_install:
+        - sudo apt-get install -y libdwarf-dev valgrind
+      script:
+        - cd src/ && make test V=1 -j$((`nproc`+1))
+        - file ./pbd
 
-script:
-  - cd src/ && make && make test
+    # Tests x86, GCC
+    - stage: "test"
+      name: "x86"
+      compiler: gcc
+      before_install:
+        - sudo dpkg --add-architecture i386
+        - sudo apt update
+        - sudo apt-get install -y gcc-multilib valgrind libdwarf-dev:i386 libc6-dbg:i386
+      script:
+        - cd src/ && CFLAGS=-m32 make test V=1 -j$((`nproc`+1))
+        - file ./pbd
+
+    # Tests x86, Clang
+    - stage: "test"
+      name: "x86"
+      compiler: clang
+      before_install:
+        - sudo dpkg --add-architecture i386
+        - sudo apt update
+        - sudo apt-get install -y gcc-multilib valgrind libdwarf-dev:i386 libc6-dbg:i386
+      script:
+        - cd src/ && CFLAGS=-m32 make test V=1 -j$((`nproc`+1))
+        - file ./pbd

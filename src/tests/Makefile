@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 CC ?= gcc
-CFLAGS  := -Wall -Wextra
-CFLAGS  += -std=c99
-CFLAGS  += -fno-omit-frame-pointer -O0 -gdwarf-2
+override CFLAGS += -Wall -Wextra
+override CFLAGS += -std=c99
+override CFLAGS += -fno-omit-frame-pointer -O0 -gdwarf-2
 
 #
 # PIE Support check
@@ -45,7 +45,7 @@ PIE_SUPPORT := $(shell echo "int main(){}" | $(CC) -x c -; file a.out \
 	| grep -Ec "shared|pie"; rm a.out &> /dev/null)
 
 ifeq ($(PIE_SUPPORT), 1)
-	CFLAGS += -no-pie
+    override CFLAGS += -no-pie
 endif
 
 # Source

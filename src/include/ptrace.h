@@ -48,13 +48,15 @@
 	extern int pt_waitchild(void);
 	extern int pt_continue(pid_t child);
 	extern int pt_continue_single_step(pid_t child);
-	extern uint64_t pt_readregister_pc(pid_t child);
-	extern void pt_setregister_pc(pid_t child, uint64_t pc);
-	extern uint64_t pt_readregister_bp(pid_t child);
-	extern uint64_t pt_readreturn_address(pid_t child);
-	extern char *pt_readmemory(pid_t child, uint64_t addr, size_t len);
-	extern void pt_writememory(pid_t child, uint64_t addr, char *data, size_t len);
-	extern uint64_t pt_readmemory64(pid_t child, uint64_t addr);
-	extern void pt_writememory64(pid_t child, uint64_t addr, uint64_t data);
+	extern uintptr_t pt_readregister_pc(pid_t child);
+	extern void pt_setregister_pc(pid_t child, uintptr_t pc);
+	extern uintptr_t pt_readregister_bp(pid_t child);
+	extern uintptr_t pt_readreturn_address(pid_t child);
+	extern char *pt_readmemory(pid_t child, uintptr_t addr, size_t len);
+	extern void pt_writememory(pid_t child, uintptr_t addr, char *data, size_t len);
+	extern long pt_readmemory_long(pid_t child, uintptr_t addr);
+	extern void pt_writememory_long(pid_t child, uintptr_t addr, long data);
+	extern uint64_t pt_readmemory64(pid_t child, uintptr_t addr);
+	extern void pt_writememory64(pid_t child, uintptr_t addr, uint64_t data);
 
 #endif /* PTRACE_H */

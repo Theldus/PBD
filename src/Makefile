@@ -30,17 +30,34 @@ INCLUDE_SPARSE += $(CURDIR)/sparse/
 # uses a different path for libdwarf, so lets use it.
 INCLUDE_DWARF = /usr/include/libdwarf/
 
-CFLAGS   = -Wall -Wextra -Werror
+# Flags
+SPARSECFLAGS = -O2 -g
+TMP     := $(CFLAGS)
+CFLAGS   = $(TMP) -Wall -Wextra -Werror
 CFLAGS  += -I $(INCLUDE) -I $(INCLUDE_DWARF) -I $(INCLUDE_SPARSE)
 CFLAGS  += -std=c99 -g -O3
 LDFLAGS  = -ldwarf -lm
 
 # Machine architecture
 ARCH := $(shell uname -m)
-ifneq ($(ARCH), x86_64)
-$(error PBD currently only supports x86_64 architecture!)
+ifeq ($(ARCH), x86_64)
+    ifneq ($(filter -m32,$(CFLAGS)),)
+        $(warning Enabling cross-compiling mode (x86_64 building 32 bit...))
+        ARCH = x86
+        SPARSECFLAGS += -m32
+        EXTRAFLAGS = -m32
+    else
+        ARCH = x86_64
+    endif
+else
+    ifneq ($(filter %86,$(ARCH)),)
+        ARCH = x86
+    else
+        $(error PBD currently only supports x86/x86_64 architectures!)
+    endif
 endif
 
+INCLUDE += -I $(CURDIR)/arch/
 INCLUDE += -I $(CURDIR)/arch/$(ARCH)/
 C_SRC =  $(wildcard *.c)
 C_SRC += $(wildcard arch/$(ARCH)/*.c)
@@ -58,9 +75,9 @@ ifeq ($(ARCH), x86_64)
 
 	ifeq ($(AVX2_SUPPORT), yes)
 		CFLAGS += -DCAN_BUILD_AVX2
-		ASM_SRC += $(wildcard arch/x86_64/*.S)
+		ASM_SRC += $(wildcard arch/x86_64/asm/*.S)
 	else
-		ASM_SRC += $(wildcard arch/x86_64/sse2.S)
+		ASM_SRC += $(wildcard arch/x86_64/asm/sse2.S)
 	endif
 endif
 
@@ -92,7 +109,7 @@ all: pbd
 
 # Sparse library
 sparse/libsparse.a: sparse/Makefile
-	$(MAKE) -C sparse/ HAVE_SQLITE=no libsparse.a
+	$(MAKE) -C sparse/ HAVE_SQLITE=no CFLAGS="$(SPARSECFLAGS)" libsparse.a
 
 sparse/Makefile:
 	$(warning Sparse submodule not fetched, fetching...)
@@ -105,11 +122,11 @@ pbd: $(OBJ) sparse/libsparse.a
 
 # Tests
 test: pbd
-	$(MAKE) -C tests/
+	$(MAKE) -C tests/ CFLAGS="$(EXTRAFLAGS)"
 
 # Benchs
 bench: pbd
-	$(MAKE) -C benchs/
+	$(MAKE) -C benchs/ CFLAGS="$(EXTRAFLAGS)"
 
 # Install rules
 install: pbd
