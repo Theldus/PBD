@@ -445,6 +445,9 @@ void usage(int retcode, const char *prg_name)
 	printf("  -w --watch-list  <var1, ...> Monitors a specified list of variables names\n");
 	printf("  -o --output <output-file>    Sets an output file for PBD output. Useful to\n");
 	printf("                               not mix PBD and executable outputs\n");
+	printf("     --args          Delimits executable arguments from this point. All\n");
+	printf("                     arguments onwards will be treated as executable\n");
+	printf("                     program arguments.");
 
 	printf("\nStatic Analysis options:\n");
 	printf("------------------------\n");

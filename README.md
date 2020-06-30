@@ -49,6 +49,8 @@ Options:
   -w --watch-list  <var1, ...> Monitors a specified list of variables names
   -o --output <output-file>    Sets an output file for PBD output. Useful to not mix PBD and
                                executable outputs
+     --args          Delimits executable arguments from this point. All arguments onwards
+                     will be treated as executable program arguments
 
 Static Analysis options:
 ------------------------
