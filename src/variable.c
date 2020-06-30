@@ -46,34 +46,37 @@ void var_dump(struct array *vars)
 		struct dw_variable *v;
 		v = array_get(&vars, i, NULL);
 
-		printf("    Variable found: %s\n", v->name);
-		printf("        scope: %d\n", v->scope);
+		fprintf(pbd_output, "    Variable found: %s\n", v->name);
+		fprintf(pbd_output, "        scope: %d\n", v->scope);
 
 		/* Location. */
 		if (v->scope == VLOCAL)
-			printf("        location: %d\n", (int)v->location.fp_offset);
+			fprintf(pbd_output,
+				"        location: %d\n", (int)v->location.fp_offset);
 		else
-			printf("        location: %" PRIxPTR "\n", v->location.address);
+			fprintf(pbd_output,
+				"        location: %" PRIxPTR "\n", v->location.address);
 
-		printf("        size (bytes): %zu\n", v->byte_size);
-		printf("        var type:     %d\n", v->type.var_type);
-		printf("        var encoding: %d\n", v->type.encoding);
+		fprintf(pbd_output, "        size (bytes): %zu\n", v->byte_size);
+		fprintf(pbd_output, "        var type:     %d\n", v->type.var_type);
+		fprintf(pbd_output, "        var encoding: %d\n", v->type.encoding);
 
 		/* Check if array. */
 		if (v->type.array.dimensions > 0)
 		{
-			printf("        array (%d dimensions) (size per element: %zu) (type: %d): \n",
+			fprintf(pbd_output,
+				"        array (%d dimensions) (size per element: %zu) (type: %d): \n",
 				v->type.array.dimensions, v->type.array.size_per_element,
 				v->type.array.var_type);
 
-			printf("            ");
+			fprintf(pbd_output, "            ");
 			for (int i = 0; i < v->type.array.dimensions; i++)
-				printf("[%d], ", v->type.array.elements_per_dimension[i]);
+				fprintf(pbd_output, "[%d], ", v->type.array.elements_per_dimension[i]);
 
-			printf("\n");
+			fprintf(pbd_output, "\n");
 		}
 
-		printf("\n");
+		fprintf(pbd_output, "\n");
 	}
 }
 

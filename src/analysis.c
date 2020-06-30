@@ -72,7 +72,8 @@ static inline void verbose_assign(
 {
 	if (args.flags & FLG_DUMP_ALL)
 	{
-		printf("===static=analysis=== [%03d] %15s (is_assign: %d) %s%s\n",
+		fprintf(pbd_output,
+			"===static=analysis=== [%03d] %15s (is_assign: %d) %s%s\n",
 			line_no,
 			name,
 			is_assign,
@@ -93,7 +94,8 @@ static inline void verbose_function_call(int line_no)
 {
 	if (args.flags & FLG_DUMP_ALL)
 	{
-		printf("===static=analysis=== [%03d] %15s (func call)\n",
+		fprintf(pbd_output,
+			"===static=analysis=== [%03d] %15s (func call)\n",
 			line_no, "");
 	}
 }

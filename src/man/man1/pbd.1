@@ -20,7 +20,7 @@
 .\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
 .\"
-.TH "PBD" "1" "2020-06-28" "v0.7" "pbd man page"
+.TH "PBD" "1" "2020-06-30" "v0.7" "pbd man page"
 .SH NAME
 pbd \- Printf Based Debugger
 .SH SYNOPSIS
@@ -57,6 +57,9 @@ whether local or global. Options -i and -w are mutually exclusive.
 .IP "-w --watch-list=var1,var2..."
 Given a comma separated sequence of variables names, PBD will only watch them,
 whether local or global. Options -i and -w are mutually exclusive.
+.IP "-o --output <file>"
+Sets an output file for PBD output. Useful to not mix PBD and executable
+outputs.
 .PP
 \fIStatic Analysis options:\fR
 .PP

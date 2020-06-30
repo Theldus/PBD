@@ -25,6 +25,8 @@
 #ifndef PBD_H
 #define PBD_H
 
+	#include <stdio.h>
+
 	/* Current version. */
 	#define MAJOR_VERSION 0
 	#define MINOR_VERSION 7
@@ -41,6 +43,9 @@
 	#define FLG_SYNTAX_HIGHLIGHT 0x80
 	#define FLG_STATIC_ANALYSIS  0x100
 	#define FLG_SANALYSIS_SETSTD 0x200
+
+	/* PBD default output file. */
+	extern FILE *pbd_output;
 
 	/* Experimental features.
 	 *
@@ -62,6 +67,7 @@
 		char *executable;
 		char *function;
 		char *theme_file;
+		char *output_file;
 		char **argv;
 	};
 

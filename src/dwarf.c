@@ -1176,7 +1176,8 @@ void dw_lines_dump(struct array *lines)
 	{
 		struct dw_line *l;
 		l = array_get(&lines, i, NULL);
-		printf("    line: %03d / address: %" PRIxPTR " / type: %d\n",
+		fprintf(pbd_output,
+			"    line: %03d / address: %" PRIxPTR " / type: %d\n",
 			l->line_no, l->addr, l->line_type);
 	}
 }

@@ -349,9 +349,9 @@ void line_default_printer(int depth, unsigned line_no,
 		);
 
 		for (int j = 0; j < v->type.array.dimensions; j++)
-			printf("[%d]", array_idxs[j]);
+			fprintf(pbd_output, "[%d]", array_idxs[j]);
 
-		printf(") has changed!, before: %s, after: %s\n",
+		fprintf(pbd_output, ") has changed!, before: %s, after: %s\n",
 			var_format_value(before, v_before, v->type.encoding,
 				v->type.array.size_per_element),
 
@@ -419,7 +419,8 @@ void line_detailed_printer(int depth, unsigned line_no,
 		/* Print lines before. */
 		if (args.context)
 		{
-			printf("----------------------------------------------------------"
+			fprintf(pbd_output,
+				"----------------------------------------------------------"
 				"---------------------\n");
 
 			if (line_no - args.context > 0)
@@ -462,9 +463,9 @@ void line_detailed_printer(int depth, unsigned line_no,
 			);
 
 			for (int j = 0; j < v->type.array.dimensions; j++)
-				printf("[%d]", array_idxs[j]);
+				fprintf(pbd_output, "[%d]", array_idxs[j]);
 
-			printf("), before: %s, after: %s\n",
+			fprintf(pbd_output, "), before: %s, after: %s\n",
 				var_format_value(before, v_before, v->type.encoding,
 					v->type.array.size_per_element),
 
@@ -490,9 +491,10 @@ void line_detailed_printer(int depth, unsigned line_no,
 				start++;
 			}
 
-			printf("----------------------------------------------------------"
+			fprintf(pbd_output,
+				"----------------------------------------------------------"
 				"---------------------\n\n");
 		}
-		printf("\n");
+		fprintf(pbd_output, "\n");
 	}
 }

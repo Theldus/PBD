@@ -24,6 +24,7 @@
 
 #include "function.h"
 #include "variable.h"
+#include "pbd.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -98,14 +99,14 @@ int fn_printf(size_t depth, int extra_space, const char* fmt, ...)
 	va_list args; /* Arguments. */
 
 	/* Indent level. */
-	fputs( (buffer = fn_get_indent(depth)), stdout );
+	fputs( (buffer = fn_get_indent(depth)), pbd_output );
 
 	/* Extra space. */
-	fprintf(stdout, "%*s", extra_space, "");
+	fprintf(pbd_output, "%*s", extra_space, "");
 
 	/* Print formatted string. */
 	va_start(args, fmt);
-	vfprintf(stdout, fmt, args);
+	vfprintf(pbd_output, fmt, args);
 	va_end(args);
 
 	/* Free buffer. */

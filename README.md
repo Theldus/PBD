@@ -47,6 +47,8 @@ Options:
   -g --only-globals  Monitors only global variables (default: global + local)
   -i --ignore-list <var1, ...> Ignores a specified list of variables names
   -w --watch-list  <var1, ...> Monitors a specified list of variables names
+  -o --output <output-file>    Sets an output file for PBD output. Useful to not mix PBD and
+                               executable outputs
 
 Static Analysis options:
 ------------------------
@@ -163,7 +165,7 @@ enough) if enabled by default on your compiler.
 ### Architecture
 Supports x86 and x86_64. Since PBD is focused on 'desktop' environments, support for other
 architectures such as OpenRISC, RISC-V, ARM... will only be considered if there is some
-kind of significant demand for this. 
+kind of significant demand for this.
 
 ### C Features
 PBD lacks the following C features:

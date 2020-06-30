@@ -45,6 +45,8 @@
 
 #include "pbd.h"
 
+/* PBD outputfile. */
+FILE *pbd_output;
 
 /* Depth, useful for recursive analysis. */
 int depth;
@@ -65,7 +67,7 @@ static struct array *context;
 static char *filename;
 
 /* Arguments list. */
-struct args args = {0,0,{0,0},0,0,0,0};
+struct args args = {0,0,{0,0},0,0,0,0,0};
 
 /* Forward definition. */
 extern int str2int(int *out, char *s);
@@ -173,6 +175,13 @@ void finish(void)
 
 	/* Deallocate static analysis data structures. */
 	static_analysis_finish();
+
+	/* Deallocate and close output, if any. */
+	if (args.output_file)
+	{
+		free(args.output_file);
+		fclose(pbd_output);
+	}
 }
 
 /**
@@ -219,11 +228,11 @@ void do_analysis(const char *file, const char *function, char **argv)
 	init_vars = 0;
 	prev_bp = NULL;
 
-	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
+	fprintf(pbd_output, "PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION, MINOR_VERSION,
 		RLSE_VERSION);
-	printf("---------------------------------------\n");
+	fprintf(pbd_output, "---------------------------------------\n");
 
-	printf("Debugging function %s:\n", function);
+	fprintf(pbd_output, "Debugging function %s:\n", function);
 
 	/* Main loop. */
 	while (pt_waitchild() != PT_CHILD_EXIT)
@@ -311,7 +320,7 @@ void do_analysis(const char *file, const char *function, char **argv)
 		 */
 		if (init_vars)
 		{
-			putchar('\n');
+			fputc('\n', pbd_output);
 			fn_printf(current_depth, 0, "[depth: %d] Entering function...\n",
 				current_depth);
 
@@ -352,7 +361,7 @@ static void dump_all(const char *prg_name)
 	/* Executable and function name should always be passed as parameters! */
 	if (args.executable == NULL || args.function == NULL)
 	{
-		printf("%s: executable and/or function name not found!\n\n", prg_name);
+		fprintf(stderr, "%s: executable and/or function name not found!\n\n", prg_name);
 		usage(EXIT_FAILURE, prg_name);
 	}
 
@@ -364,23 +373,23 @@ static void dump_all(const char *prg_name)
 	/* Wait for child process. */
 	pt_waitchild();
 
-	printf("PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION,
+	fprintf(pbd_output, "PBD (Printf Based Debugger) v%d.%d%s\n", MAJOR_VERSION,
 		MINOR_VERSION, RLSE_VERSION);
-	printf("---------------------------------------\n");
+	fprintf(pbd_output, "---------------------------------------\n");
 
 	/* File name. */
-	printf("Filename: %s\n", filename);
+	fprintf(pbd_output, "Filename: %s\n", filename);
 
 	/* Dump vars. */
-	printf("\nVariables:\n");
+	fprintf(pbd_output, "\nVariables:\n");
 	var_dump( ((struct function *)array_get(&context, 0, NULL))->vars );
 
 	/* Dump lines. */
-	printf("Lines:\n");
+	fprintf(pbd_output, "Lines:\n");
 	dw_lines_dump(lines);
 
 	/* Break point list. */
-	printf("\nBreakpoint list:\n");
+	fprintf(pbd_output, "\nBreakpoint list:\n");
 	breakpoints = (args.flags & FLG_STATIC_ANALYSIS) ?
 		static_analysis(filename, args.function, lines, dw.dw_func.low_pc) :
 		bp_createlist(lines);
@@ -388,7 +397,7 @@ static void dump_all(const char *prg_name)
 	i = 0;
 	HASHTABLE_FOREACH(breakpoints, b_k, b_v,
 	{
-		printf(
+		fprintf(pbd_output,
 			"    Breakpoint #%03d, line: %03d / addr: %" PRIxPTR
 			" / orig_byte: %" PRIx64"\n",
 			i++,
@@ -434,6 +443,8 @@ void usage(int retcode, const char *prg_name)
 	printf("  -g --only-globals  Monitors only global variables (default: global + local)\n");
 	printf("  -i --ignore-list <var1, ...> Ignores a specified list of variables names\n");
 	printf("  -w --watch-list  <var1, ...> Monitors a specified list of variables names\n");
+	printf("  -o --output <output-file>    Sets an output file for PBD output. Useful to\n");
+	printf("                               not mix PBD and executable outputs\n");
 
 	printf("\nStatic Analysis options:\n");
 	printf("------------------------\n");
@@ -560,6 +571,7 @@ static void readargs(int argc, char **argv)
 		{"only-globals",           'g',     OPTPARSE_NONE},
 		{"ignore-list",            'i', OPTPARSE_REQUIRED},
 		{"watch-list",             'w', OPTPARSE_REQUIRED},
+		{"output",                 'o', OPTPARSE_REQUIRED},
 		{"static",                 'S',     OPTPARSE_NONE},
 		{0,                        'D', OPTPARSE_REQUIRED},
 		{0,                        'U', OPTPARSE_REQUIRED},
@@ -633,6 +645,15 @@ static void readargs(int argc, char **argv)
 					(strlen(options.optarg) + 1));
 
 				strcpy(args.iw_list.list, options.optarg);
+				break;
+			case 'o':
+				if (args.output_file != NULL)
+					free(args.output_file);
+
+				args.output_file = malloc(sizeof(char) *
+					(strlen(options.optarg) + 1));
+
+				strcpy(args.output_file, options.optarg);
 				break;
 			case 'S':
 				args.flags |= FLG_STATIC_ANALYSIS;
@@ -743,6 +764,18 @@ static void readargs(int argc, char **argv)
 	/* If ignore list, lets parse each variable. */
 	if (args.flags & (FLG_IGNR_LIST|FLG_WATCH_LIST))
 		args.iw_list.ht_list = parse_list(args.iw_list.list);
+
+	/* PBD output. */
+	if (args.output_file != NULL)
+	{
+		pbd_output = fopen(args.output_file, "w");
+		if (!pbd_output)
+		{
+			fprintf(stderr, "%s: cannot open %s to write!\n", argv[0],
+				args.output_file);
+			usage(EXIT_FAILURE, argv[0]);
+		}
+	}
 }
 
 /**
@@ -750,6 +783,8 @@ static void readargs(int argc, char **argv)
  */
 int main(int argc, char **argv)
 {
+	pbd_output = stdout;
+
 	/*
 	 * Argument list of static analysis.
 	 * This argument list should be built _before_ the arguments
