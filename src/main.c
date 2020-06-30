@@ -572,6 +572,7 @@ static void readargs(int argc, char **argv)
 		{"ignore-list",            'i', OPTPARSE_REQUIRED},
 		{"watch-list",             'w', OPTPARSE_REQUIRED},
 		{"output",                 'o', OPTPARSE_REQUIRED},
+		{"args",                   253,     OPTPARSE_NONE},
 		{"static",                 'S',     OPTPARSE_NONE},
 		{0,                        'D', OPTPARSE_REQUIRED},
 		{0,                        'U', OPTPARSE_REQUIRED},
@@ -584,20 +585,28 @@ static void readargs(int argc, char **argv)
 		{0,0,0}
 	};
 
+	/* Parse options. */
 	optparse_init(&options, argv);
 	while ((option = optparse_long(&options, longopts, NULL)) != -1)
 	{
 		switch (option)
 		{
+			/* Version. */
 			case 'v':
 				version();
 				break;
+
+			/* Help/Usage. */
 			case 'h':
 				usage(EXIT_SUCCESS, argv[0]);
 				break;
+
+			/* Show lines. */
 			case 's':
 				args.flags |= FLG_SHOW_LINES;
 				break;
+
+			/* Context number, used together with --show-lines. */
 			case 'x':
 				if (str2int(&args.context, options.optarg) < 0 || args.context < 0)
 				{
@@ -606,12 +615,18 @@ static void readargs(int argc, char **argv)
 					usage(EXIT_FAILURE, argv[0]);
 				}
 				break;
+
+			/* Show only locals variables. */
 			case 'l':
 				args.flags |= FLG_ONLY_LOCALS;
 				break;
+
+			/* Show only globals variables. */
 			case 'g':
 				args.flags |= FLG_ONLY_GLOBALS;
 				break;
+
+			/* Ignore list: variables list to ignore. */
 			case 'i':
 				if (args.flags & FLG_WATCH_LIST)
 				{
@@ -629,6 +644,8 @@ static void readargs(int argc, char **argv)
 
 				strcpy(args.iw_list.list, options.optarg);
 				break;
+
+			/* Watch list: variables list to watch. */
 			case 'w':
 				if (args.flags & FLG_IGNR_LIST)
 				{
@@ -646,6 +663,8 @@ static void readargs(int argc, char **argv)
 
 				strcpy(args.iw_list.list, options.optarg);
 				break;
+
+			/* Set output file. */
 			case 'o':
 				if (args.output_file != NULL)
 					free(args.output_file);
@@ -655,9 +674,17 @@ static void readargs(int argc, char **argv)
 
 				strcpy(args.output_file, options.optarg);
 				break;
+
+			/* Delimit program arguments: --args. */
+			case 253:
+				goto out;
+
+			/* Enable static analysis. */
 			case 'S':
 				args.flags |= FLG_STATIC_ANALYSIS;
 				break;
+
+			/* Define a new symbol. (used together with -S). */
 			case 'D':
 				if (!(args.flags & FLG_STATIC_ANALYSIS))
 				{
@@ -667,6 +694,8 @@ static void readargs(int argc, char **argv)
 				}
 				static_analysis_add_arg("-D ", options.optarg);
 				break;
+
+			/* Undefines a symbol. (used together with -S). */
 			case 'U':
 				if (!(args.flags & FLG_STATIC_ANALYSIS))
 				{
@@ -676,6 +705,8 @@ static void readargs(int argc, char **argv)
 				}
 				static_analysis_add_arg("-U ", options.optarg);
 				break;
+
+			/* Include path. (used together with -S). */
 			case 'I':
 				if (!(args.flags & FLG_STATIC_ANALYSIS))
 				{
@@ -685,6 +716,8 @@ static void readargs(int argc, char **argv)
 				}
 				static_analysis_add_arg("-I", options.optarg);
 				break;
+
+			/* Set C standard (--std). (used together with -S). */
 			case 254:
 				if (!(args.flags & FLG_STATIC_ANALYSIS))
 				{
@@ -695,9 +728,13 @@ static void readargs(int argc, char **argv)
 				args.flags |= FLG_SANALYSIS_SETSTD;
 				static_analysis_add_arg("-std=", options.optarg);
 				break;
+
+			/* Enables syntax highlighting. */
 			case 'c':
 				args.flags |= FLG_SYNTAX_HIGHLIGHT;
 				break;
+
+			/* Set theme file. (used together with -c). */
 			case 't':
 				if (args.theme_file != NULL)
 					free(args.theme_file);
@@ -707,18 +744,28 @@ static void readargs(int argc, char **argv)
 
 				strcpy(args.theme_file, options.optarg);
 				break;
+
+			/* Dumps all information gathered by the executable. */
 			case 'd':
 				args.flags |= FLG_DUMP_ALL;
 				break;
+
+			/*
+			 * Ignore equal statements, i.e: statements that are in the same
+			 * line  number.
+			 */
 			case 255:
 				args.flags |= FLG_IGNR_EQSTAT;
 				break;
+
+			/* Unknown command. */
 			case '?':
 				fprintf(stderr, "%s: %s\n\n", argv[0], options.errmsg);
 				usage(EXIT_FAILURE, argv[0]);
 		}
 	}
 
+out:
 	/* Enable syntax highlight?. */
 	if ((args.flags & FLG_SYNTAX_HIGHLIGHT) && !(args.flags & FLG_SHOW_LINES))
 	{
