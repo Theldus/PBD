@@ -209,7 +209,11 @@ void do_analysis(const char *file, const char *function, char **argv)
 		QUIT(EXIT_FAILURE, "error while spawning the child process!\n");
 
 	/* Wait child, create the breakpoint list and insert them. */
-	pt_waitchild();
+	if (pt_waitchild() != 0)
+	{
+		finish();
+		exit(EXIT_FAILURE);
+	}
 
 	/*
 	 * Create the breakpoint list accordingly with the analysis type:

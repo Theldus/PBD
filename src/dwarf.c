@@ -51,7 +51,8 @@ int *dw_init(const char *file, struct dw_utils *dw)
 	/* Open file. */
 	dw->fd = open(file, O_RDONLY);
 	if (dw->fd < 0)
-		QUIT(EXIT_FAILURE, "File (%s) not found\n", file);
+		QUIT(EXIT_FAILURE, "Cannot open file (%s), please check if the\n"
+		    "file exists and have R/X permissions!\n", file);
 
 	/* Initializes dwarf. */
 	errhand = NULL;

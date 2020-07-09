@@ -24,6 +24,7 @@
 
 #include "ptrace.h"
 #include "util.h"
+#include <errno.h>
 
 /**
  * Architecture independent ptrace helper functions.
@@ -45,7 +46,15 @@ int pt_spawnprocess(const char *file, char **argv)
 	child = fork();
 	if (child == 0)
 	{
-		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
+		if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
+		{
+			QUIT(EXIT_FAILURE, "a problem has ocurred while spawning the child!\n"
+				"Reason: %s\n\n%s", strerror(errno),
+				"Please check if your process have attach permissions. This can\n"
+				"be set in the file /proc/sys/kernel/yama/ptrace_scope.\n"
+				"This is known to happen inside unprivileged Docker containers\n"
+				);
+		}
 		execv(file, (char *const *)argv);
 	}
 
