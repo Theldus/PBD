@@ -32,7 +32,7 @@
 	#include  <sys/types.h>
 
 	/* Offset memcmp pointer. */
-	int64_t (*offmemcmp)(
+	extern int64_t (*offmemcmp)(
 		void *src, void *dest, size_t block_size, size_t length);
 
 	/* External declarations. */

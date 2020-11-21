@@ -41,7 +41,7 @@
 	/* Output buffer size. */
 	#define BS 64
 
-	void (*line_output)(
+	extern void (*line_output)(
 		int depth, unsigned line_no,
 		struct dw_variable *v, union var_value *v_before,
 		union var_value *v_after, int *array_idxs);
