@@ -876,7 +876,7 @@ int highlight_init(const char *theme_file)
 			 * so there is no worries about sprintf =).
 			 */
 			color = malloc(sizeof(char) * 12);
-			sprintf(color, "\033[38;5;%dm", num);
+			sprintf(color, "\033[38;5;%um", (uint8_t)num);
 
 			/* Copy to the list. */
 			COLORS[CURRENT_THEME+idx] = color;
