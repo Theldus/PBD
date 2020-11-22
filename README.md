@@ -18,7 +18,7 @@ require any changes to the source code nor does binary instrumentation.
 
 <p align="center">
 <a href="https://asciinema.org/a/312880" target="_blank">
-<img align="center" src="https://asciinema.org/a/312880.svg" alt="PBD example">
+<img align="center" src="https://i.imgur.com/abZAxS7.gif" alt="PBD example">
 <br>
 PBD example
 </p>
